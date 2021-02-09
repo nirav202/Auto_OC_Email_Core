@@ -16,6 +16,7 @@ namespace Auto_OC_Email_Core
     {
         private static string strEmailMSGTemplate = "";
         private static string RegEmailPat = @"<([a-zA-Z0-9_\-\.]+)@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.)|(([a-zA-Z0-9\-]+\.)+))([a-zA-Z]{2,4}|[0-9]{1,3})(\]?)>";
+        private static string strEmailMSGArchive = ConfigurationManager.AppSettings.Get("ArchiveEmailMSG");
         static void Main(string[] args)
         {
             string strLogFile = ConfigurationManager.AppSettings.Get("LogFile");
@@ -23,70 +24,52 @@ namespace Auto_OC_Email_Core
             {
                 Directory.CreateDirectory(strLogFile);
             }
+            string strorderNo="";
             string strLogFileName = strLogFile + "\\" + "Log_" + DateTime.Today.ToShortDateString().Replace('/', '-') + ".txt";
+            string strEmailUserName = ConfigurationManager.AppSettings.Get("EmailUserName");
+            string strEmailUserPwd = ConfigurationManager.AppSettings.Get("EmailUserPwd");
+            string strEmailFrom = ConfigurationManager.AppSettings.Get("EmailFrom");
+            string strEmailMSGLocation = ConfigurationManager.AppSettings.Get("EmailMSGLocation");
 
+            string strOCFileDollar = ConfigurationManager.AppSettings.Get("OCFileDollar");
+            string strOCFileDim = ConfigurationManager.AppSettings.Get("OCFileDim");
+            string strNotificationEmail = ConfigurationManager.AppSettings.Get("NotificationEmail");
+            strEmailMSGTemplate = ConfigurationManager.AppSettings.Get("EmailMSGTeplate");
+            double doubleHoursToWait = Convert.ToDouble(ConfigurationManager.AppSettings.Get("OCNotificationHoursToWait"));
+
+            SqlConnection sqlcon = new SqlConnection(ConfigurationManager.ConnectionStrings["dbcon"].ToString());
+            SqlCommand cmd = new SqlCommand();
+            SqlDataAdapter adpt = new SqlDataAdapter();
+            DataTable dtOrder = new DataTable();
+            string OCDollarFile = "", OCDimFile = "",strMSGFileErr="";
             try
             {
-                string strEmailUserName = ConfigurationManager.AppSettings.Get("EmailUserName");
-                string strEmailUserPwd = ConfigurationManager.AppSettings.Get("EmailUserPwd");
-                string strEmailFrom = ConfigurationManager.AppSettings.Get("EmailFrom");
-                string strEmailMSGLocation = ConfigurationManager.AppSettings.Get("EmailMSGLocation");
-                string strEmailMSGArchive = ConfigurationManager.AppSettings.Get("ArchiveEmailMSG");
-                string strOCFileDollar = ConfigurationManager.AppSettings.Get("OCFileDollar");
-                string strOCFileDim = ConfigurationManager.AppSettings.Get("OCFileDim");
-                string strNotificationEmail = ConfigurationManager.AppSettings.Get("NotificationEmail");
-                strEmailMSGTemplate = ConfigurationManager.AppSettings.Get("EmailMSGTeplate");
-                double doubleHoursToWait = Convert.ToDouble(ConfigurationManager.AppSettings.Get("OCNotificationHoursToWait"));
 
-                SqlConnection sqlcon = new SqlConnection(ConfigurationManager.ConnectionStrings["dbcon"].ToString());
-                SqlCommand cmd = new SqlCommand();
-                SqlDataAdapter adpt = new SqlDataAdapter();
-                DataTable dtOrder = new DataTable();
                 cmd.Connection = sqlcon;
                 cmd.CommandType = CommandType.Text;
                 adpt.SelectCommand = cmd;
 
 
-                #region Create Archive File Structure...
-                if (!Directory.Exists(strEmailMSGArchive))
-                {
-                    Directory.CreateDirectory(strEmailMSGArchive);
-                }
-                strEmailMSGArchive = strEmailMSGArchive + "\\" + DateTime.Today.Year.ToString();
-                if (!Directory.Exists(strEmailMSGArchive))
-                {
-                    Directory.CreateDirectory(strEmailMSGArchive);
-                }
-                strEmailMSGArchive = strEmailMSGArchive + "\\" + DateTime.Today.Year.ToString() + DateTime.Today.Month.ToString("00");
-                if (!Directory.Exists(strEmailMSGArchive))
-                {
-                    Directory.CreateDirectory(strEmailMSGArchive);
-                }
-                strEmailMSGArchive = strEmailMSGArchive + "\\" + DateTime.Today.Year.ToString() + DateTime.Today.Month.ToString("00") + DateTime.Today.Day.ToString("00");
-                if (!Directory.Exists(strEmailMSGArchive))
-                {
-                    Directory.CreateDirectory(strEmailMSGArchive);
-                }
-                #endregion
-
                 foreach (string strmsgfiles in Directory.GetFiles(strEmailMSGLocation, "*.msg"))
                 {
-                    string strorderNo = Path.GetFileName(strmsgfiles).Split('-', '_', ' ')[0];
+                    strMSGFileErr = strmsgfiles;
+
+                    strorderNo = Path.GetFileName(strmsgfiles).Split('-', '_', ' ')[0];
                     clsWriteLog.funWriteLog(strLogFileName, DateTime.Now.ToString() + ": " + strorderNo + " Processing - " + strmsgfiles);
 
-                    Console.WriteLine(Path.GetFileName(strmsgfiles).Split('-', '_', ' ')[0]);
+                    //Console.WriteLine(Path.GetFileName(strmsgfiles).Split('-', '_', ' ')[0]);
 
                     cmd.CommandText = "select OH.DeliveryDate,Isnull(OC.Email,'') 'Email',Isnull(OC.ShipToEmail,'') 'ShipToEmail',Isnull(OC.DeliverySlipToEmail,'') 'DeliverySlipToEmail' from data.OrderHeader OH inner join lookup.OrderCustomer OC on OC.InternalId = OH.CustomerName where OH.DocumentNumber ='" + strorderNo + "'";
                     dtOrder.Clear();
                     adpt.Fill(dtOrder);
                     if (dtOrder.Rows.Count > 0)
                     {
-                        string OCDollarFile = "", OCDimFile = "";
+                        OCDollarFile = ""; OCDimFile = "";
                         foreach (string strocfiles in Directory.GetFiles(strOCFileDollar, "*.pdf"))
                         {
                             if (Path.GetFileName(strocfiles).Split('-', '_', ' ')[0].StartsWith(strorderNo))
                             {
-                                Console.WriteLine(Path.GetFileName(strocfiles));
+                                //Console.WriteLine(Path.GetFileName(strocfiles));
                                 OCDollarFile = strocfiles;
                                 break;
                             }
@@ -96,7 +79,7 @@ namespace Auto_OC_Email_Core
                         {
                             if (Path.GetFileName(strocfilesdim).Remove(0, 12).Split('-', '_', ' ')[0].StartsWith(strorderNo))
                             {
-                                Console.WriteLine(Path.GetFileName(strocfilesdim));
+                                //Console.WriteLine(Path.GetFileName(strocfilesdim));
                                 OCDimFile = strocfilesdim;
                                 break;
                             }
@@ -139,8 +122,11 @@ namespace Auto_OC_Email_Core
                                     strEmailCC = funGetToCCEmails(strFullString.Remove(0, strFullString.IndexOf("\r\nTo: ") + 3));
                                 }
                                 strEmailCC = funRemoveBlaklistDom(strEmailCC).Replace("><", ",").Replace("<", "").Replace(">", "");
+                                strEmailCC = strEmailCC.Replace("sales@precisionglassindustries.com", "");
+
                                 string strEmailSubject = "PGI " + strorderNo + " " + funGetContent("Subject: ", strFullString, "\r\n");
                                 string strDeliveryDT = Convert.ToDateTime(dtOrder.Rows[0]["DeliveryDate"]).ToShortDateString();
+
 
 
                                 if (strEmailTo.Length <= 0)
@@ -149,9 +135,9 @@ namespace Auto_OC_Email_Core
 
 
                                     string strEmailSub = "Not able to extract TO email addresses for OC email to customer. Order# " + strorderNo;
-                                    string strEmailBody = "Hello, \r\n\r\nDimension files for Order# " + strorderNo + " not found.";
+                                    string strEmailBody = "Hello, \r\n\r\nNot able to extract TO email addresses from customer email files for Order# " + strorderNo + " not found.";
                                     string strEmailAttachment = "";
-                                    clsWriteLog.funWriteLog(strLogFileName, DateTime.Now.ToString() + ": " + strorderNo + " Not able to extract TO email addresses for OC email to customer. Sending notification Email... To : " + strEmailTo);
+                                    clsWriteLog.funWriteLog(strLogFileName, DateTime.Now.ToString() + ": " + strorderNo + " Not able to extract TO email addresses for OC email to customer. Sending notification Email... To : " + strNotificationEmail);
                                     clsEmail.SendEmail(strEmailUserName, strEmailUserPwd, strEmailFrom, strNotificationEmail, strEmailSub, strEmailBody, strEmailAttachment, "");
 
                                 }
@@ -160,7 +146,7 @@ namespace Auto_OC_Email_Core
                                     clsWriteLog.funWriteLog(strLogFileName, DateTime.Now.ToString() + ": " + strorderNo + " Sending OC Email... To : " + strEmailTo);
                                     try
                                     {
-                                        string strEmailBody;   
+                                        string strEmailBody;
                                         StreamReader streamReader = new StreamReader(strEmailMSGTemplate + @"\EmailSalesTeam.htm");
                                         strEmailBody = streamReader.ReadToEnd();
 
@@ -196,18 +182,19 @@ namespace Auto_OC_Email_Core
 
                                         mail.From = new MailAddress(strEmailFrom);
 
-                                        //mail.To.Add(strEmailTo);
-                                        //if (strEmailCC.Length > 0)
-                                        //    mail.CC.Add(strEmailCC);
+                                        mail.To.Add(strEmailTo);
+
+                                        if (strEmailCC.Length > 0)
+                                            mail.CC.Add(strEmailCC);
 
                                         //Testing 
-                                        mail.To.Add("npatel@precisionglassindustries.com");
-                                        if (strEmailCC.Length > 0)
-                                            mail.CC.Add("ymotiwala@precisionglassindustries.com");
+                                        //mail.To.Add("npatel@precisionglassindustries.com");
+                                        //if (strEmailCC.Length > 0)
+                                        //    mail.CC.Add("ymotiwala@precisionglassindustries.com");
                                         //Testing End
 
                                         mail.Subject = strEmailSubject;
-                                        mail.Body = String.Format(strEmailBody, strDeliveryDT, att1.ContentId, att2.ContentId, att3.ContentId, att4.ContentId, att5.ContentId, strEmailTo, strEmailCC);
+                                        mail.Body = String.Format(strEmailBody, strDeliveryDT, att1.ContentId, att2.ContentId, att3.ContentId, att4.ContentId, att5.ContentId);    //, strEmailTo, strEmailCC);
 
                                         mail.IsBodyHtml = true;
                                         mail.Attachments.Add(att1);
@@ -229,6 +216,7 @@ namespace Auto_OC_Email_Core
                                         string timestamp = "-" + DateTime.Now.Hour.ToString() + "_" + DateTime.Now.Minute.ToString() + "_" + DateTime.Now.Second.ToString();
                                         //Archive OC ....
                                         clsWriteLog.funWriteLog(strLogFileName, DateTime.Now.ToString() + ": " + strorderNo + " Archiving email MSG file and OC with dollar PDF file.");
+                                        strEmailMSGArchive = funCreateFileStructure();
                                         string strOCDollarArcive, strMSGArcive;
                                         strOCDollarArcive = Path.GetFileName(OCDollarFile).Replace(".pdf", timestamp + ".pdf");
                                         Directory.Move(OCDollarFile, strEmailMSGArchive + "\\" + strOCDollarArcive);
@@ -277,13 +265,69 @@ namespace Auto_OC_Email_Core
                     else
                     {
                         clsWriteLog.funWriteLog(strLogFileName, DateTime.Now.ToString() + ": " + strorderNo + " Order not found in Orders database : " + strorderNo);
+
+                        //send notification if set time is elasped and order does not found in database...
+                        FileInfo fileInfo = new FileInfo(strmsgfiles);
+                        if (fileInfo.CreationTime.AddHours(doubleHoursToWait) < DateTime.Now)
+                        {
+                            string strEmailTo = strNotificationEmail;
+                            string strEmailCC = "";
+                            string strEmailSubject = "Order not found in Orders database. Order# " + strorderNo;
+                            string strEmailBody = "Hello, \r\n\rOrder not found in Orders database. Order# " + strorderNo + " not found.";
+                            string strEmailAttachment = "";
+                            clsWriteLog.funWriteLog(strLogFileName, DateTime.Now.ToString() + ": " + strorderNo + " Order not found in Orders database. Sending notification Email... To : " + strEmailTo);
+                            clsEmail.SendEmail(strEmailUserName, strEmailUserPwd, strEmailFrom, strEmailTo, strEmailSubject, strEmailBody, strEmailAttachment, strEmailCC);
+                        }
                     }
                 }
             }
             catch (Exception ex)
             {
                 clsWriteLog.funWriteLog(strLogFileName, DateTime.Now.ToString() + ": Exception occured : " + ex.Message);
+                string strEmailSub = "Error processing. Order# " + strorderNo;
+                string strEmailBody = "Hello, \r\n\r\nError occured while processing email files for Order# " + strorderNo + ".";
+                string strEmailAttachment = "";
+                clsWriteLog.funWriteLog(strLogFileName, DateTime.Now.ToString() + ": " + strorderNo + " Error occured while processing email files. Sending notification Email... To : " + strNotificationEmail);
+                clsEmail.SendEmail(strEmailUserName, strEmailUserPwd, strEmailFrom, strNotificationEmail, strEmailSub, strEmailBody, strEmailAttachment, "");
+
+                string timestamp = "-" + DateTime.Now.Hour.ToString() + "_" + DateTime.Now.Minute.ToString() + "_" + DateTime.Now.Second.ToString();
+                //Moving MSG file to Error folder ....
+                clsWriteLog.funWriteLog(strLogFileName, DateTime.Now.ToString() + ": " + strorderNo + " Moving email MSG file and OC with dollar PDF file to Error folder.");
+                string strEmailMSGErr = ConfigurationManager.AppSettings.Get("ErrorMSG");
+                string strOCDollarArcive, strMSGArcive;
+                strOCDollarArcive = Path.GetFileName(OCDollarFile).Replace(".pdf", timestamp + ".pdf");
+                Directory.Move(OCDollarFile, strEmailMSGErr + "\\" + strOCDollarArcive);
+                //Archive Email MSG file ....
+                strMSGArcive = Path.GetFileName(strMSGFileErr).Replace(".msg", timestamp + ".msg");
+                Directory.Move(strMSGFileErr, strEmailMSGErr + "\\" + strMSGArcive);
             }
+        }
+
+        private static string funCreateFileStructure()
+        {
+            string strEmailMSGArc = ConfigurationManager.AppSettings.Get("ArchiveEmailMSG");
+            #region Create Archive File Structure...
+            if (!Directory.Exists(strEmailMSGArc))
+            {
+                Directory.CreateDirectory(strEmailMSGArc);
+            }
+            strEmailMSGArc = strEmailMSGArc + "\\" + DateTime.Today.Year.ToString();
+            if (!Directory.Exists(strEmailMSGArc))
+            {
+                Directory.CreateDirectory(strEmailMSGArc);
+            }
+            strEmailMSGArc = strEmailMSGArc + "\\" + DateTime.Today.Year.ToString() + DateTime.Today.Month.ToString("00");
+            if (!Directory.Exists(strEmailMSGArc))
+            {
+                Directory.CreateDirectory(strEmailMSGArc);
+            }
+            strEmailMSGArc = strEmailMSGArc + "\\" + DateTime.Today.Year.ToString() + DateTime.Today.Month.ToString("00") + DateTime.Today.Day.ToString("00");
+            if (!Directory.Exists(strEmailMSGArc))
+            {
+                Directory.CreateDirectory(strEmailMSGArc);
+            }
+            #endregion
+            return strEmailMSGArc;
         }
 
         private static string funGetToCCEmails(string strFullString)
