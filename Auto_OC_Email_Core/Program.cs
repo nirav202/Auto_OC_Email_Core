@@ -15,7 +15,9 @@ namespace Auto_OC_Email_Core
     class Program
     {
         private static string strEmailMSGTemplate = "";
-        private static string RegEmailPat = @"<([a-zA-Z0-9_\-\.]+)@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.)|(([a-zA-Z0-9\-]+\.)+))([a-zA-Z]{2,4}|[0-9]{1,3})(\]?)>";
+        //private static string RegEmailPat = @"<([a-zA-Z0-9_\-\.]+)@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.)|(([a-zA-Z0-9\-]+\.)+))([a-zA-Z]{2,4}|[0-9]{1,3})(\]?)>";
+        private static string RegEmailPat = @"([ <(]?)([a-zA-Z0-9_\-\.]+)@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.)|(([a-zA-Z0-9\-]+\.)+))([a-zA-Z]{2,4}|[0-9]{1,3})(\]?)[> \r\n)]?";
+
         private static string strEmailMSGArchive = ConfigurationManager.AppSettings.Get("ArchiveEmailMSG");
         static void Main(string[] args)
         {
@@ -41,6 +43,8 @@ namespace Auto_OC_Email_Core
             SqlCommand cmd = new SqlCommand();
             SqlDataAdapter adpt = new SqlDataAdapter();
             DataTable dtOrder = new DataTable();
+            DataTable dtHWD = new DataTable();
+
             string OCDollarFile = "", OCDimFile = "",strMSGFileErr="";
             try
             {
@@ -53,7 +57,7 @@ namespace Auto_OC_Email_Core
                 foreach (string strmsgfiles in Directory.GetFiles(strEmailMSGLocation, "*.msg"))
                 {
                     strMSGFileErr = strmsgfiles;
-
+                    bool dimflag = true;
                     strorderNo = Path.GetFileName(strmsgfiles).Split('-', '_', ' ')[0];
                     clsWriteLog.funWriteLog(strLogFileName, DateTime.Now.ToString() + ": " + strorderNo + " Processing - " + strmsgfiles);
 
@@ -75,20 +79,28 @@ namespace Auto_OC_Email_Core
                             }
                         }
 
-                        foreach (string strocfilesdim in Directory.GetFiles(strOCFileDim, "*.pdf"))
+                        //Check for if its Hardware only order.
+                        cmd.CommandText = "SELECT * FROM data.OrderLine where DocumentNumber = '"+strorderNo+"' and ProductCode not in ('Hardware')";
+                        dtHWD.Clear();
+                        adpt.Fill(dtHWD);
+                        if (dtHWD.Rows.Count > 0)
                         {
-                            if (Path.GetFileName(strocfilesdim).Remove(0, 12).Split('-', '_', ' ')[0].StartsWith(strorderNo))
+                            foreach (string strocfilesdim in Directory.GetFiles(strOCFileDim, "*.pdf"))
                             {
-                                //Console.WriteLine(Path.GetFileName(strocfilesdim));
-                                OCDimFile = strocfilesdim;
-                                break;
+                                if (Path.GetFileName(strocfilesdim).Remove(0, 12).Split('-', '_', ' ')[0].StartsWith(strorderNo))
+                                {
+                                    //Console.WriteLine(Path.GetFileName(strocfilesdim));
+                                    OCDimFile = strocfilesdim;
+                                    break;
+                                }
                             }
                         }
-
+                        else
+                        { dimflag = false; }
                         if (OCDollarFile.Length > 0)
                         {
                             clsWriteLog.funWriteLog(strLogFileName, DateTime.Now.ToString() + ": " + strorderNo + " OC File with dollar information found - " + OCDollarFile);
-                            if (OCDimFile.Length > 0)
+                            if (dimflag==false || (dimflag==true && OCDimFile.Length > 0))
                             {
 
                                 clsWriteLog.funWriteLog(strLogFileName, DateTime.Now.ToString() + ": " + strorderNo + " File with dimension information found - " + OCDimFile);
@@ -97,8 +109,9 @@ namespace Auto_OC_Email_Core
                                 string strFullString = sr.ReadToEnd(), strEmailTo, strEmailCC;
                                 sr.Close();
                                 strFullString = Regex.Replace(strFullString, @"\0", "");
-                                strEmailTo = Regex.Match(funGetContent("From: ", strFullString, "\r\n"), RegEmailPat).Value.Replace("<", "").Replace(">", "");
-                                strEmailTo = Regex.Match(funGetContent("From: ", strFullString, "\r\n"), RegEmailPat).Value.Replace("<", "").Replace(">", "");
+                                //strEmailTo = funGetToCCEmails(strFullString.Remove(0, strFullString.IndexOf("\r\nFrom: ") + 2)).Replace("<", "").Replace(">", "").Replace("(","").Replace(")","");
+                                strEmailTo = Regex.Match(funGetContent("\r\nFrom: ", strFullString, "\r\n"), RegEmailPat).Value.Replace("<", "").Replace(">", "").Replace("(", "").Replace(")", "");
+
                                 if (strEmailTo.Contains("efax"))
                                 {
                                     clsWriteLog.funWriteLog(strLogFileName, DateTime.Now.ToString() + ": " + strorderNo + " EFax order looking for email in database...");
@@ -115,16 +128,23 @@ namespace Auto_OC_Email_Core
                                     {
                                         strEmailTo = strEmailTo + "," + dtOrder.Rows[0]["DeliverySlipToEmail"].ToString();
                                     }
-                                    strEmailCC = funGetContent("To: ", strFullString, "\r\n");
+                                    strEmailCC = funGetContent("\r\nTo: ", strFullString, "\r\n");
                                 }
                                 else
                                 {
-                                    strEmailCC = funGetToCCEmails(strFullString.Remove(0, strFullString.IndexOf("\r\nTo: ") + 3));
+                                    strEmailCC = funGetToCCEmails(strFullString.Remove(0, strFullString.IndexOf("\r\nTo: ") + 2));
+                                    if (strFullString.IndexOf("\r\nCC: ") > 0)
+                                    {
+                                        strEmailCC = strEmailCC +(strEmailCC.Trim().Length>0?",":"")+ funGetToCCEmails(strFullString.Remove(0, strFullString.IndexOf("\r\nCC: ") + 2));
+                                    }
                                 }
-                                strEmailCC = funRemoveBlaklistDom(strEmailCC).Replace("><", ",").Replace("<", "").Replace(">", "");
-                                strEmailCC = strEmailCC.Replace("sales@precisionglassindustries.com", "");
+                                if (strEmailCC.Trim().Length > 0)
+                                {
+                                    strEmailCC = funRemoveBlaklistDom(strEmailCC);
+                                    //strEmailCC = strEmailCC.Replace("sales@precisionglassindustries.com", "");
+                                }
 
-                                string strEmailSubject = "PGI " + strorderNo + " " + funGetContent("Subject: ", strFullString, "\r\n");
+                                string strEmailSubject = "PGI " + strorderNo + " " + funGetContent("\r\nSubject: ", strFullString, "\r\n");
                                 string strDeliveryDT = Convert.ToDateTime(dtOrder.Rows[0]["DeliveryDate"]).ToShortDateString();
 
 
@@ -184,13 +204,13 @@ namespace Auto_OC_Email_Core
 
                                         mail.To.Add(strEmailTo);
 
-                                        if (strEmailCC.Length > 0)
+                                        if (strEmailCC.Trim().Length > 0)
                                             mail.CC.Add(strEmailCC);
 
                                         //Testing 
                                         //mail.To.Add("npatel@precisionglassindustries.com");
                                         //if (strEmailCC.Length > 0)
-                                        //    mail.CC.Add("ymotiwala@precisionglassindustries.com");
+                                        //    mail.CC.Add(",npatel@precisionglassindustries.com");
                                         //Testing End
 
                                         mail.Subject = strEmailSubject;
@@ -338,15 +358,18 @@ namespace Auto_OC_Email_Core
             {
                 if (Regex.IsMatch(strTemp, RegEmailPat))
                 {
-                    strEmails += Regex.Match(strTemp, RegEmailPat).Value;
 
+                    if (!Regex.Match(strTemp, RegEmailPat).Value.Replace("<", "").Replace(">", "").Replace("(", "").Replace(")", "").Trim().Equals("sales@precisionglassindustries.com"))
+                    {
+                        strEmails = strEmails + (strEmails.Trim().Length > 0 ? "," : "") + Regex.Match(strTemp, RegEmailPat).Value;
+                    }
                 }
                 else
                 {
                     break;
                 }
             }
-            return strEmails;
+            return strEmails.Replace("<", "").Replace(">", "").Replace("(", "").Replace(")", "");
         }
         private static string funRemoveBlaklistDom(string strEmails)
         {
@@ -359,17 +382,20 @@ namespace Auto_OC_Email_Core
             foreach (string strtemp in strEmails.Split(charSplit))
             {
                 string strEmailDom = strtemp.Remove(0,strtemp.IndexOf('@')+1);
-                strEmailDom = strEmailDom.Substring(0, strEmailDom.LastIndexOf('.'));
+                if (strEmailDom.LastIndexOf('.') > 0)
+                {
+                    strEmailDom = strEmailDom.Substring(0, strEmailDom.LastIndexOf('.'));
 
-                bool IsBlack = false;
-                foreach (string strtempBlack in strBlackList)
-                {
-                    if (strEmailDom.Equals(strtempBlack))
-                        IsBlack = true;
-                }
-                if (IsBlack == false)
-                {
-                    FinalEmailTo = FinalEmailTo + (FinalEmailTo.Trim().Length > 0 ? "," : "") + strtemp;
+                    bool IsBlack = false;
+                    foreach (string strtempBlack in strBlackList)
+                    {
+                        if (strEmailDom.Equals(strtempBlack))
+                            IsBlack = true;
+                    }
+                    if (IsBlack == false)
+                    {
+                        FinalEmailTo = FinalEmailTo + (FinalEmailTo.Trim().Length > 0 ? "," : "") + strtemp;
+                    }
                 }
             }
 
