@@ -9,6 +9,7 @@ using System.Data;
 using System.Xml;
 using System.Collections.Generic;
 using System.Net.Mail;
+using MsgReader;
 
 namespace Auto_OC_Email_Core
 {
@@ -48,7 +49,9 @@ namespace Auto_OC_Email_Core
             string OCDollarFile = "", OCDimFile = "",strMSGFileErr="";
             try
             {
+                
 
+                
                 cmd.Connection = sqlcon;
                 cmd.CommandType = CommandType.Text;
                 adpt.SelectCommand = cmd;
@@ -56,6 +59,7 @@ namespace Auto_OC_Email_Core
 
                 foreach (string strmsgfiles in Directory.GetFiles(strEmailMSGLocation, "*.msg"))
                 {
+                  
                     strMSGFileErr = strmsgfiles;
                     bool dimflag = true;
                     strorderNo = Path.GetFileName(strmsgfiles).Split('-', '_', ' ')[0];
@@ -106,11 +110,25 @@ namespace Auto_OC_Email_Core
                                 clsWriteLog.funWriteLog(strLogFileName, DateTime.Now.ToString() + ": " + strorderNo + " File with dimension information found - " + OCDimFile);
                                 clsWriteLog.funWriteLog(strLogFileName, DateTime.Now.ToString() + ": " + strorderNo + " Reading Email MSG file - " + strmsgfiles);
                                 StreamReader sr = new StreamReader(strmsgfiles, Encoding.Default);
+                                
                                 string strFullString = sr.ReadToEnd(), strEmailTo, strEmailCC;
+                                
                                 sr.Close();
-                                strFullString = Regex.Replace(strFullString, @"\0", "");
+                                
+                                //MsgReader.Mime.Message message = new MsgReader.Mime.Message(System.Text.Encoding.ASCII.GetBytes(strFullString));
+                                //MsgReader.Reader reader = new Reader();
+                                MsgReader.Outlook.Storage.Message EmailMsg = new MsgReader.Outlook.Storage.Message(strmsgfiles);
+                                strEmailTo= Regex.Match(EmailMsg.GetEmailSender(false, false), RegEmailPat).Value.Replace("<", "").Replace(">", "").Replace("(", "").Replace(")", "");
+                                strEmailCC = funGetCCEmails(EmailMsg.GetEmailRecipients(MsgReader.Outlook.RecipientType.To, false, false));//, RegEmailPat).Value.Replace("<", "").Replace(">", "").Replace("(", "").Replace(")", "");
+                                strEmailCC = strEmailCC +(strEmailCC.Trim().Length>0 ? ",":"") + funGetCCEmails(EmailMsg.GetEmailRecipients(MsgReader.Outlook.RecipientType.Cc, false, false));
+                                string strEmailSubject = EmailMsg.SubjectNormalized;
+
+                                EmailMsg.Dispose();
+                                //string strEmailSubject = "PGI " + strorderNo + " " + funGetContent("\r\nSubject: ", strFullString, "\r\n");
+
+                               // strFullString = Regex.Replace(strFullString, @"\0", "");
                                 //strEmailTo = funGetToCCEmails(strFullString.Remove(0, strFullString.IndexOf("\r\nFrom: ") + 2)).Replace("<", "").Replace(">", "").Replace("(","").Replace(")","");
-                                strEmailTo = Regex.Match(funGetContent("\r\nFrom: ", strFullString, "\r\n"), RegEmailPat).Value.Replace("<", "").Replace(">", "").Replace("(", "").Replace(")", "");
+                                //strEmailTo = Regex.Match(funGetContent("\r\nFrom: ", strFullString, "\r\n"), RegEmailPat).Value.Replace("<", "").Replace(">", "").Replace("(", "").Replace(")", "");
 
                                 if (strEmailTo.Contains("efax"))
                                 {
@@ -128,23 +146,22 @@ namespace Auto_OC_Email_Core
                                     {
                                         strEmailTo = strEmailTo + "," + dtOrder.Rows[0]["DeliverySlipToEmail"].ToString();
                                     }
-                                    strEmailCC = funGetContent("\r\nTo: ", strFullString, "\r\n");
+                                    //strEmailCC = funGetContent("\r\nTo: ", strFullString, "\r\n");
                                 }
-                                else
-                                {
-                                    strEmailCC = funGetToCCEmails(strFullString.Remove(0, strFullString.IndexOf("\r\nTo: ") + 2));
-                                    if (strFullString.IndexOf("\r\nCC: ") > 0)
-                                    {
-                                        strEmailCC = strEmailCC +(strEmailCC.Trim().Length>0?",":"")+ funGetToCCEmails(strFullString.Remove(0, strFullString.IndexOf("\r\nCC: ") + 2));
-                                    }
-                                }
+                                //else
+                                //{
+                                //    strEmailCC = funGetToCCEmails(strFullString.Remove(0, strFullString.IndexOf("\r\nTo: ") + 2));
+                                //    if (strFullString.IndexOf("\r\nCC: ") > 0)
+                                //    {
+                                //        strEmailCC = strEmailCC +(strEmailCC.Trim().Length>0?",":"")+ funGetToCCEmails(strFullString.Remove(0, strFullString.IndexOf("\r\nCC: ") + 2));
+                                //    }
+                                //}
                                 if (strEmailCC.Trim().Length > 0)
                                 {
                                     strEmailCC = funRemoveBlaklistDom(strEmailCC);
                                     //strEmailCC = strEmailCC.Replace("sales@precisionglassindustries.com", "");
                                 }
 
-                                string strEmailSubject = "PGI " + strorderNo + " " + funGetContent("\r\nSubject: ", strFullString, "\r\n");
                                 string strDeliveryDT = Convert.ToDateTime(dtOrder.Rows[0]["DeliveryDate"]).ToShortDateString();
 
 
@@ -350,6 +367,18 @@ namespace Auto_OC_Email_Core
             return strEmailMSGArc;
         }
 
+        private static string funGetCCEmails(string strEmailAddress)
+        {
+            string strEmails = "";
+            foreach(string strTemp in strEmailAddress.Split(";"))
+            {
+                if (!Regex.Match(strTemp, RegEmailPat).Value.Replace("<", "").Replace(">", "").Replace("(", "").Replace(")", "").Trim().Equals("sales@precisionglassindustries.com"))
+                {
+                    strEmails = strEmails + (strEmails.Trim().Length > 0 ? "," : "") + Regex.Match(strTemp, RegEmailPat).Value.Replace("<", "").Replace(">", "").Replace("(", "").Replace(")", ""); 
+                }
+            }
+            return strEmails;
+        }
         private static string funGetToCCEmails(string strFullString)
         {
             string strEmails = "";
