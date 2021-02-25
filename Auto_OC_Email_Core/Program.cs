@@ -36,6 +36,7 @@ namespace Auto_OC_Email_Core
 
             string strOCFileDollar = ConfigurationManager.AppSettings.Get("OCFileDollar");
             string strOCFileDim = ConfigurationManager.AppSettings.Get("OCFileDim");
+            string strErrorEmail = ConfigurationManager.AppSettings.Get("ErrorEmail");
             string strNotificationEmail = ConfigurationManager.AppSettings.Get("NotificationEmail");
             strEmailMSGTemplate = ConfigurationManager.AppSettings.Get("EmailMSGTeplate");
             double doubleHoursToWait = Convert.ToDouble(ConfigurationManager.AppSettings.Get("OCNotificationHoursToWait"));
@@ -180,7 +181,8 @@ namespace Auto_OC_Email_Core
                                 }
                                 else
                                 {
-                                    clsWriteLog.funWriteLog(strLogFileName, DateTime.Now.ToString() + ": " + strorderNo + " Sending OC Email... To : " + strEmailTo);
+                                    clsWriteLog.funWriteLog(strLogFileName, DateTime.Now.ToString() + ": " + strorderNo + " Sending OC Email... To : " + strEmailTo +(strEmailCC.Trim().Length>0 ? " CC : "+strEmailCC : ""));
+                                    
                                     try
                                     {
                                         string strEmailBody;
@@ -266,6 +268,22 @@ namespace Auto_OC_Email_Core
                                     catch (Exception ex)
                                     {
                                         clsWriteLog.funWriteLog(strLogFileName, DateTime.Now.ToString() + ": " + strorderNo + " Email send Error." + ex.Message);
+                                        string strEmailSub = "Error sending email Order# " + strorderNo;
+                                        string strEmailBody = "Hello, \r\n\r\nError occured while sending email files for Order# " + strorderNo + ".";
+                                        string strEmailAttachment = "";
+                                        clsWriteLog.funWriteLog(strLogFileName, DateTime.Now.ToString() + ": " + strorderNo + " Error occured while sending email files. Sending notification Email... To : " + strErrorEmail);
+                                        clsEmail.SendEmail(strEmailUserName, strEmailUserPwd, strEmailFrom, strErrorEmail, strEmailSub, strEmailBody, strEmailAttachment, "");
+
+                                        string timestamp = "-" + DateTime.Now.Hour.ToString() + "_" + DateTime.Now.Minute.ToString() + "_" + DateTime.Now.Second.ToString();
+                                        //Moving MSG file to Error folder ....
+                                        clsWriteLog.funWriteLog(strLogFileName, DateTime.Now.ToString() + ": " + strorderNo + " Moving email MSG file and OC with dollar PDF file to Error folder.");
+                                        string strEmailMSGErr = ConfigurationManager.AppSettings.Get("ErrorMSG");
+                                        string strOCDollarArcive, strMSGArcive;
+                                        strOCDollarArcive = Path.GetFileName(OCDollarFile).Replace(".pdf", timestamp + ".pdf");
+                                        Directory.Move(OCDollarFile, strEmailMSGErr + "\\" + strOCDollarArcive);
+                                        //Archive Email MSG file ....
+                                        strMSGArcive = Path.GetFileName(strMSGFileErr).Replace(".msg", timestamp + ".msg");
+                                        Directory.Move(strMSGFileErr, strEmailMSGErr + "\\" + strMSGArcive);
                                     }
 
                                 }
@@ -324,8 +342,8 @@ namespace Auto_OC_Email_Core
                 string strEmailSub = "Error processing. Order# " + strorderNo;
                 string strEmailBody = "Hello, \r\n\r\nError occured while processing email files for Order# " + strorderNo + ".";
                 string strEmailAttachment = "";
-                clsWriteLog.funWriteLog(strLogFileName, DateTime.Now.ToString() + ": " + strorderNo + " Error occured while processing email files. Sending notification Email... To : " + strNotificationEmail);
-                clsEmail.SendEmail(strEmailUserName, strEmailUserPwd, strEmailFrom, strNotificationEmail, strEmailSub, strEmailBody, strEmailAttachment, "");
+                clsWriteLog.funWriteLog(strLogFileName, DateTime.Now.ToString() + ": " + strorderNo + " Error occured while processing email files. Sending notification Email... To : " + strErrorEmail);
+                clsEmail.SendEmail(strEmailUserName, strEmailUserPwd, strEmailFrom, strErrorEmail, strEmailSub, strEmailBody, strEmailAttachment, "");
 
                 string timestamp = "-" + DateTime.Now.Hour.ToString() + "_" + DateTime.Now.Minute.ToString() + "_" + DateTime.Now.Second.ToString();
                 //Moving MSG file to Error folder ....
