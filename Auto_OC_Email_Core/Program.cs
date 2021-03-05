@@ -40,6 +40,7 @@ namespace Auto_OC_Email_Core
             string strNotificationEmail = ConfigurationManager.AppSettings.Get("NotificationEmail");
             strEmailMSGTemplate = ConfigurationManager.AppSettings.Get("EmailMSGTeplate");
             double doubleHoursToWait = Convert.ToDouble(ConfigurationManager.AppSettings.Get("OCNotificationHoursToWait"));
+            double doublePDFPurgeHoursToWait = Convert.ToDouble(ConfigurationManager.AppSettings.Get("PDFPurgeHoursToWait"));
 
             SqlConnection sqlcon = new SqlConnection(ConfigurationManager.ConnectionStrings["dbcon"].ToString());
             SqlCommand cmd = new SqlCommand();
@@ -335,6 +336,23 @@ namespace Auto_OC_Email_Core
                         }
                     }
                 }
+                
+                //Process PDF for purge...
+                foreach(string strPDFfiles in Directory.GetFiles(strEmailMSGLocation,"*.pdf"))
+                {
+                    //send notification if set time is elasped and order does not found in database...
+                    FileInfo fileInfo = new FileInfo(strPDFfiles);
+                    if ((fileInfo.CreationTime.DayOfWeek==DayOfWeek.Friday? fileInfo.CreationTime.AddHours(doublePDFPurgeHoursToWait+48) : fileInfo.CreationTime.AddHours(doublePDFPurgeHoursToWait)) < DateTime.Now)
+                    {
+                        
+                        Directory.Delete(strPDFfiles);
+                        strorderNo = Path.GetFileName(strPDFfiles).Split('-', '_', ' ')[0];
+                        clsWriteLog.funWriteLog(strLogFileName, DateTime.Now.ToString() + ": " + strorderNo + " Deleted "+ strPDFfiles +". No .msg file found for " + doublePDFPurgeHoursToWait.ToString() +" hours.");
+                        
+                    }
+                }
+
+
             }
             catch (Exception ex)
             {
