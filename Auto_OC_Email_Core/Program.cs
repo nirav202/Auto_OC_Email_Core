@@ -10,6 +10,7 @@ using System.Xml;
 using System.Collections.Generic;
 using System.Net.Mail;
 using MsgReader;
+using System.Threading;
 
 namespace Auto_OC_Email_Core
 {
@@ -336,22 +337,22 @@ namespace Auto_OC_Email_Core
                         }
                     }
                 }
-                
+
+                Thread.Sleep(3000);
                 //Process PDF for purge...
-                foreach(string strPDFfiles in Directory.GetFiles(strEmailMSGLocation,"*.pdf"))
+                foreach (string strPDFfiles in Directory.GetFiles(strEmailMSGLocation, "*.pdf"))
                 {
                     //send notification if set time is elasped and order does not found in database...
                     FileInfo fileInfo = new FileInfo(strPDFfiles);
-                    if ((fileInfo.CreationTime.DayOfWeek==DayOfWeek.Friday? fileInfo.CreationTime.AddHours(doublePDFPurgeHoursToWait+48) : fileInfo.CreationTime.AddHours(doublePDFPurgeHoursToWait)) < DateTime.Now)
+                    if ((fileInfo.CreationTime.DayOfWeek == DayOfWeek.Friday ? fileInfo.CreationTime.AddHours(doublePDFPurgeHoursToWait + 48) : fileInfo.CreationTime.AddHours(doublePDFPurgeHoursToWait)) < DateTime.Now)
                     {
-                        
-                        Directory.Delete(strPDFfiles);
                         strorderNo = Path.GetFileName(strPDFfiles).Split('-', '_', ' ')[0];
-                        clsWriteLog.funWriteLog(strLogFileName, DateTime.Now.ToString() + ": " + strorderNo + " Deleted "+ strPDFfiles +". No .msg file found for " + doublePDFPurgeHoursToWait.ToString() +" hours.");
-                        
+                        clsWriteLog.funWriteLog(strLogFileName, DateTime.Now.ToString() + ": " + strorderNo + " Deleted " + strPDFfiles + ". No .msg file found for " + doublePDFPurgeHoursToWait.ToString() + " hours.");
+                        File.Delete(strPDFfiles);
+                        //Directory.Delete(strPDFfiles);
+
                     }
                 }
-
 
             }
             catch (Exception ex)
