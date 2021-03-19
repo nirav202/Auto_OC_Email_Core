@@ -70,11 +70,14 @@ namespace Auto_OC_Email_Core
 
                     //Console.WriteLine(Path.GetFileName(strmsgfiles).Split('-', '_', ' ')[0]);
 
-                    cmd.CommandText = "select OH.DeliveryDate,Isnull(OC.Email,'') 'Email',Isnull(OC.ShipToEmail,'') 'ShipToEmail',Isnull(OC.DeliverySlipToEmail,'') 'DeliverySlipToEmail' from data.OrderHeader OH inner join lookup.OrderCustomer OC on OC.InternalId = OH.CustomerName where OH.DocumentNumber ='" + strorderNo + "'";
+                    cmd.CommandText = "select OH.DeliveryDate,Isnull(OC.Email,'') 'Email',Isnull(OC.ShipToEmail,'') 'ShipToEmail',Isnull(OC.DeliverySlipToEmail,'') 'DeliverySlipToEmail',ISNULL(OC.OrderConfirmationEmail,'') 'OrderConfirmationEmail' from data.OrderHeader OH inner join lookup.OrderCustomer OC on OC.InternalId = OH.CustomerName where OH.DocumentNumber ='" + strorderNo + "'";
                     dtOrder.Clear();
                     adpt.Fill(dtOrder);
                     if (dtOrder.Rows.Count > 0)
                     {
+                        //get the additional email list for OrderConfirmation if they exist in database...
+                        string additinalEmailList = dtOrder.Rows[0]["OrderConfirmationEmail"].ToString();
+
                         OCDollarFile = ""; OCDimFile = "";
                         foreach (string strocfiles in Directory.GetFiles(strOCFileDollar, "*.pdf"))
                         {
@@ -124,10 +127,13 @@ namespace Auto_OC_Email_Core
                                 strEmailTo= Regex.Match(EmailMsg.GetEmailSender(false, false), RegEmailPat).Value.Replace("<", "").Replace(">", "").Replace("(", "").Replace(")", "");
                                 strEmailCC = funGetCCEmails(EmailMsg.GetEmailRecipients(MsgReader.Outlook.RecipientType.To, false, false));//, RegEmailPat).Value.Replace("<", "").Replace(">", "").Replace("(", "").Replace(")", "");
                                 strEmailCC = strEmailCC +(strEmailCC.Trim().Length>0 ? ",":"") + funGetCCEmails(EmailMsg.GetEmailRecipients(MsgReader.Outlook.RecipientType.Cc, false, false));
-                                string strEmailSubject = EmailMsg.SubjectNormalized;
+                                string strEmailSubject = "PGINo " + strorderNo + " " + EmailMsg.SubjectNormalized;
 
                                 EmailMsg.Dispose();
-                                //string strEmailSubject = "PGI " + strorderNo + " " + funGetContent("\r\nSubject: ", strFullString, "\r\n");
+
+                                //Add additional emails to strEmailTo for some customer if it is in our database.
+                                strEmailTo = strEmailTo + (additinalEmailList.Trim().Length > 0 ? "," + additinalEmailList : "");
+
 
                                // strFullString = Regex.Replace(strFullString, @"\0", "");
                                 //strEmailTo = funGetToCCEmails(strFullString.Remove(0, strFullString.IndexOf("\r\nFrom: ") + 2)).Replace("<", "").Replace(">", "").Replace("(","").Replace(")","");
