@@ -7,7 +7,7 @@
 
   <ItemGroup>
     <PackageReference Include="Microsoft.Office.Interop.Outlook" Version="15.0.4797.1003" />
-    <PackageReference Include="MsgReader" Version="3.12.2" />
+    <PackageReference Include="MsgReader" Version="4.0.2" />
     <PackageReference Include="System.Configuration.ConfigurationManager" Version="5.0.0" />
     <PackageReference Include="System.Data.SqlClient" Version="4.8.2" />
   </ItemGroup>
