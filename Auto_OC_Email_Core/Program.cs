@@ -138,11 +138,11 @@ namespace Auto_OC_Email_Core
                                         strEmailTo = Regex.Match(EmailEml.Headers.From.MailAddress.Address, RegEmailPat).Value.Replace("<", "").Replace(">", "").Replace("(", "").Replace(")", "");
                                         foreach (var recipient in EmailEml.Headers.To)
                                         {
-                                            strEmailCC = strEmailCC + funGetCCEmails(recipient.MailAddress.Address);
+                                            strEmailCC = strEmailCC + (strEmailCC.Trim().Length > 0 ? "," : "") + funGetCCEmails(recipient.MailAddress.Address);
                                         }
                                         foreach (var recipient in EmailEml.Headers.Cc)
                                         {
-                                            strEmailCC = strEmailCC + funGetCCEmails(recipient.MailAddress.Address);
+                                            strEmailCC = strEmailCC + (strEmailCC.Trim().Length > 0 ? "," : "") + funGetCCEmails(recipient.MailAddress.Address);
                                         }
                                         strEmailSubject = "PGINo " + strorderNo + " " + EmailEml.Headers.Subject;
 
