@@ -277,7 +277,7 @@ namespace Auto_OC_Email_Core
 
                                             smtpClient.Send(mail);
                                             mail.Dispose();
-
+                                            Thread.Sleep(6000);
                                             clsWriteLog.funWriteLog(strLogFileName, DateTime.Now.ToString() + ": " + strorderNo + " Email send successfully.");
                                             string timestamp = "-" + DateTime.Now.Hour.ToString() + "_" + DateTime.Now.Minute.ToString() + "_" + DateTime.Now.Second.ToString();
                                             //Archive OC ....
@@ -392,14 +392,14 @@ namespace Auto_OC_Email_Core
 
                 string timestamp = "-" + DateTime.Now.Hour.ToString() + "_" + DateTime.Now.Minute.ToString() + "_" + DateTime.Now.Second.ToString();
                 //Moving MSG file to Error folder ....
-                clsWriteLog.funWriteLog(strLogFileName, DateTime.Now.ToString() + ": " + strorderNo + " Moving email file and OC with dollar PDF file to Error folder.");
-                string strEmailMSGErr = ConfigurationManager.AppSettings.Get("ErrorMSG");
-                string strOCDollarArcive, strMSGArcive;
-                strOCDollarArcive = Path.GetFileName(OCDollarFile).Replace(".pdf", timestamp + ".pdf");
-                Directory.Move(OCDollarFile, strEmailMSGErr + "\\" + strOCDollarArcive);
-                //Archive Email MSG file ....
-                strMSGArcive = Path.GetFileName(strMSGFileErr).Replace(".msg", timestamp + ".msg").Replace(".eml", timestamp + ".eml");
-                Directory.Move(strMSGFileErr, strEmailMSGErr + "\\" + strMSGArcive);
+                //clsWriteLog.funWriteLog(strLogFileName, DateTime.Now.ToString() + ": " + strorderNo + " Moving email file and OC with dollar PDF file to Error folder.");
+                //string strEmailMSGErr = ConfigurationManager.AppSettings.Get("ErrorMSG");
+                //string strOCDollarArcive, strMSGArcive;
+                //strOCDollarArcive = Path.GetFileName(OCDollarFile).Replace(".pdf", timestamp + ".pdf");
+                //Directory.Move(OCDollarFile, strEmailMSGErr + "\\" + strOCDollarArcive);
+                ////Archive Email MSG file ....
+                //strMSGArcive = Path.GetFileName(strMSGFileErr).Replace(".msg", timestamp + ".msg").Replace(".eml", timestamp + ".eml");
+                //Directory.Move(strMSGFileErr, strEmailMSGErr + "\\" + strMSGArcive);
             }
         
     }
