@@ -73,7 +73,7 @@ namespace Auto_OC_Email_Core
 
                         //Console.WriteLine(Path.GetFileName(strmsgfiles).Split('-', '_', ' ')[0]);
 
-                        cmd.CommandText = "select OH.DeliveryDate,Isnull(OC.Email,'') 'Email',case Isnull(OC.ShipToEmail,'') when 'null' then '' else Isnull(OC.ShipToEmail,'') end  'ShipToEmail',case Isnull(OC.DeliverySlipToEmail,'') when 'null' then '' else Isnull(OC.DeliverySlipToEmail,'') end 'DeliverySlipToEmail',ISNULL(OC.OrderConfirmationEmail,'') 'OrderConfirmationEmail' from data.OrderHeader OH inner join lookup.OrderCustomer OC on OC.InternalId = OH.CustomerName where OH.DocumentNumber ='" + strorderNo + "'";
+                        cmd.CommandText = "select OH.DeliveryDate,Isnull(OC.Email,'') 'Email',case Isnull(OC.ShipToEmail,'') when 'null' then '' else Isnull(OC.ShipToEmail,'') end  'ShipToEmail',case Isnull(OC.DeliverySlipToEmail,'') when 'null' then '' else Isnull(OC.DeliverySlipToEmail,'') end 'DeliverySlipToEmail',case ISNULL(OC.OrderConfirmationEmail,'') when 'null' then '' else ISNULL(OC.OrderConfirmationEmail,'') end 'OrderConfirmationEmail' from data.OrderHeader OH inner join lookup.OrderCustomer OC on OC.InternalId = OH.CustomerName where OH.DocumentNumber Like '%" + strorderNo + "%'";
                         dtOrder.Clear();
                         adpt.Fill(dtOrder);
                         if (dtOrder.Rows.Count > 0)
@@ -84,7 +84,9 @@ namespace Auto_OC_Email_Core
                             OCDollarFile = ""; OCDimFile = "";
                             foreach (string strocfiles in Directory.GetFiles(strOCFileDollar, "*.pdf"))
                             {
-                                if (Path.GetFileName(strocfiles).Split('-', '_', ' ')[0].StartsWith(strorderNo))
+                                //see if OC PDF file exist or not....
+                                //if (Path.GetFileName(strocfiles).Split('-', '_', ' ')[0].StartsWith(strorderNo))
+                                if (Path.GetFileName(strocfiles).Contains(strorderNo))
                                 {
                                     //Console.WriteLine(Path.GetFileName(strocfiles));
                                     OCDollarFile = strocfiles;
@@ -93,14 +95,15 @@ namespace Auto_OC_Email_Core
                             }
 
                             //Check for if its Hardware only order.
-                            cmd.CommandText = "SELECT * FROM data.OrderLine where DocumentNumber = '" + strorderNo + "' and ProductCode not in ('Hardware')";
+                            cmd.CommandText = "SELECT * FROM data.OrderLine where DocumentNumber Like '%" + strorderNo + "%' and ProductCode not in ('Hardware')";
                             dtHWD.Clear();
                             adpt.Fill(dtHWD);
                             if (dtHWD.Rows.Count > 0)
                             {
                                 foreach (string strocfilesdim in Directory.GetFiles(strOCFileDim, "*.pdf"))
                                 {
-                                    if (Path.GetFileName(strocfilesdim).Remove(0, 12).Split('-', '_', ' ')[0].StartsWith(strorderNo))
+                                    //if (Path.GetFileName(strocfilesdim).Remove(0, 12).Split('-', '_', ' ')[0].StartsWith(strorderNo))
+                                    if (Path.GetFileName(strocfilesdim).Contains(strorderNo))
                                     {
                                         //Console.WriteLine(Path.GetFileName(strocfilesdim));
                                         OCDimFile = strocfilesdim;
@@ -295,7 +298,7 @@ namespace Auto_OC_Email_Core
                                         catch (Exception ex)
                                         {
                                             clsWriteLog.funWriteLog(strLogFileName, DateTime.Now.ToString() + ": " + strorderNo + " Email send Error." + ex.Message);
-                                            string strEmailSub = "Error sending email Order# " + strorderNo;
+                                            string strEmailSub = "Application:- Auto_OC_Email_Core Error sending email Order# " + strorderNo;
                                             string strEmailBody = "Hello, \r\n\r\nError occured while sending email files for Order# " + strorderNo + ".";
                                             string strEmailAttachment = "";
                                             clsWriteLog.funWriteLog(strLogFileName, DateTime.Now.ToString() + ": " + strorderNo + " Error occured while sending email files. Sending notification Email... To : " + strErrorEmail);
@@ -384,7 +387,7 @@ namespace Auto_OC_Email_Core
             catch (Exception ex)
             {
                 clsWriteLog.funWriteLog(strLogFileName, DateTime.Now.ToString() + ": Exception occured : " + ex.Message);
-                string strEmailSub = "Error processing. Order# " + strorderNo;
+                string strEmailSub = "Application:- Auto_OC_Email_Core Error processing. Order# " + strorderNo;
                 string strEmailBody = "Hello, \r\n\r\nError occured while processing email files for Order# " + strorderNo + ".";
                 string strEmailAttachment = "";
                 clsWriteLog.funWriteLog(strLogFileName, DateTime.Now.ToString() + ": " + strorderNo + " Error occured while processing email files. Sending notification Email... To : " + strErrorEmail);
