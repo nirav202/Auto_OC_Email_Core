@@ -240,14 +240,20 @@ namespace Auto_OC_Email_Core
 
                                             Attachment att1 = new Attachment(strEmailMSGTemplate + @"\image001.jpg");
                                             att1.ContentDisposition.Inline = true;
-                                            Attachment att2 = new Attachment(strEmailMSGTemplate + @"\image002.png");
+                                            Attachment att2 = new Attachment(strEmailMSGTemplate + @"\img_phone.png");
                                             att2.ContentDisposition.Inline = true;
-                                            Attachment att3 = new Attachment(strEmailMSGTemplate + @"\image003.png");
+                                            Attachment att3 = new Attachment(strEmailMSGTemplate + @"\img_mail.png");
                                             att3.ContentDisposition.Inline = true;
-                                            Attachment att4 = new Attachment(strEmailMSGTemplate + @"\image004.png");
+                                            Attachment att4 = new Attachment(strEmailMSGTemplate + @"\img_maps.png");
                                             att4.ContentDisposition.Inline = true;
-                                            Attachment att5 = new Attachment(strEmailMSGTemplate + @"\image005.png");
+                                            Attachment att5 = new Attachment(strEmailMSGTemplate + @"\img_facebook.png");
                                             att5.ContentDisposition.Inline = true;
+                                            Attachment att6 = new Attachment(strEmailMSGTemplate + @"\img_linkedin.png");
+                                            att6.ContentDisposition.Inline = true;
+                                            Attachment att7 = new Attachment(strEmailMSGTemplate + @"\img_instagram.png");
+                                            att7.ContentDisposition.Inline = true;
+                                            Attachment att8 = new Attachment(strEmailMSGTemplate + @"\img_showers.png");
+                                            att8.ContentDisposition.Inline = true;
 
                                             mail.From = new MailAddress(strEmailFrom);
 
@@ -263,7 +269,7 @@ namespace Auto_OC_Email_Core
                                             //Testing End
 
                                             mail.Subject = strEmailSubject;
-                                            mail.Body = String.Format(strEmailBody, strDeliveryDT, att1.ContentId, att2.ContentId, att3.ContentId, att4.ContentId, att5.ContentId);    //, strEmailTo, strEmailCC);
+                                            mail.Body = String.Format(strEmailBody, strDeliveryDT, att1.ContentId, att2.ContentId, att3.ContentId, att4.ContentId, att5.ContentId, att6.ContentId, att7.ContentId,att8.ContentId);    //, strEmailTo, strEmailCC);
 
                                             mail.IsBodyHtml = true;
                                             mail.Attachments.Add(att1);
@@ -271,6 +277,9 @@ namespace Auto_OC_Email_Core
                                             mail.Attachments.Add(att3);
                                             mail.Attachments.Add(att4);
                                             mail.Attachments.Add(att5);
+                                            mail.Attachments.Add(att6);
+                                            mail.Attachments.Add(att7);
+                                            mail.Attachments.Add(att8);
 
                                             foreach (string attachmentfile in strEmailAttachment)
                                             {
