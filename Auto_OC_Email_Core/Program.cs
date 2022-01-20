@@ -257,15 +257,15 @@ namespace Auto_OC_Email_Core
 
                                             mail.From = new MailAddress(strEmailFrom);
 
-                                            mail.To.Add(strEmailTo);
+                                           // mail.To.Add(strEmailTo);
 
                                             if (strEmailCC.Trim().Length > 0)
                                                 mail.CC.Add(strEmailCC);
 
                                             //Testing 
-                                            //mail.To.Add("npatel@precisionglassindustries.com");
-                                            //if (strEmailCC.Length > 0)
-                                            //    mail.CC.Add("npatel@precisionglassindustries.com");
+                                            mail.To.Add("npatel@precisionglassindustries.com");
+                                            if (strEmailCC.Length > 0)
+                                                mail.CC.Add("npatel@precisionglassindustries.com");
                                             //Testing End
 
                                             mail.Subject = strEmailSubject;
@@ -293,14 +293,14 @@ namespace Auto_OC_Email_Core
                                             clsWriteLog.funWriteLog(strLogFileName, DateTime.Now.ToString() + ": " + strorderNo + " Email send successfully.");
                                             string timestamp = "-" + DateTime.Now.Hour.ToString() + "_" + DateTime.Now.Minute.ToString() + "_" + DateTime.Now.Second.ToString();
                                             //Archive OC ....
-                                            clsWriteLog.funWriteLog(strLogFileName, DateTime.Now.ToString() + ": " + strorderNo + " Archiving email file and OC with dollar PDF file.");
-                                            strEmailMSGArchive = funCreateFileStructure();
-                                            string strOCDollarArcive, strMSGArcive;
-                                            strOCDollarArcive = Path.GetFileName(OCDollarFile).Replace(".pdf", timestamp + ".pdf");
-                                            Directory.Move(OCDollarFile, strEmailMSGArchive + "\\" + strOCDollarArcive);
-                                            //Archive Email file ....
-                                            strMSGArcive = Path.GetFileName(strmsgfiles).Replace(".msg", timestamp + ".msg").Replace(".eml", timestamp + ".eml");
-                                            Directory.Move(strmsgfiles, strEmailMSGArchive + "\\" + strMSGArcive);
+                                            ////clsWriteLog.funWriteLog(strLogFileName, DateTime.Now.ToString() + ": " + strorderNo + " Archiving email file and OC with dollar PDF file.");
+                                            ////strEmailMSGArchive = funCreateFileStructure();
+                                            ////string strOCDollarArcive, strMSGArcive;
+                                            ////strOCDollarArcive = Path.GetFileName(OCDollarFile).Replace(".pdf", timestamp + ".pdf");
+                                            ////Directory.Move(OCDollarFile, strEmailMSGArchive + "\\" + strOCDollarArcive);
+                                            //////Archive Email file ....
+                                            ////strMSGArcive = Path.GetFileName(strmsgfiles).Replace(".msg", timestamp + ".msg").Replace(".eml", timestamp + ".eml");
+                                            ////Directory.Move(strmsgfiles, strEmailMSGArchive + "\\" + strMSGArcive);
 
 
                                         }
