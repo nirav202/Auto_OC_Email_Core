@@ -68,7 +68,7 @@ namespace Auto_OC_Email_Core
 
                         strMSGFileErr = strmsgfiles;
                         bool dimflag = true;
-                        strorderNo = Path.GetFileName(strmsgfiles).Split('-', '_', ' ')[0];
+                        strorderNo = Path.GetFileName(strmsgfiles).Split('_', ' ')[0];
                         clsWriteLog.funWriteLog(strLogFileName, DateTime.Now.ToString() + ": " + strorderNo + " Processing - " + strmsgfiles);
 
                         //Console.WriteLine(Path.GetFileName(strmsgfiles).Split('-', '_', ' ')[0]);
@@ -209,6 +209,7 @@ namespace Auto_OC_Email_Core
                                         clsEmail.SendEmail(strEmailUserName, strEmailUserPwd, strEmailFrom, strNotificationEmail, strEmailSub, strEmailBody, strEmailAttachment, "");
 
                                     }
+                                    //Sending Email.....
                                     else
                                     {
                                         clsWriteLog.funWriteLog(strLogFileName, DateTime.Now.ToString() + ": " + strorderNo + " Sending OC Email... To : " + strEmailTo + (strEmailCC.Trim().Length > 0 ? " CC : " + strEmailCC : ""));
@@ -257,15 +258,15 @@ namespace Auto_OC_Email_Core
 
                                             mail.From = new MailAddress(strEmailFrom);
 
-                                           // mail.To.Add(strEmailTo);
+                                            mail.To.Add(strEmailTo);
 
                                             if (strEmailCC.Trim().Length > 0)
                                                 mail.CC.Add(strEmailCC);
 
                                             //Testing 
-                                            mail.To.Add("npatel@precisionglassindustries.com");
-                                            if (strEmailCC.Length > 0)
-                                                mail.CC.Add("npatel@precisionglassindustries.com");
+                                            //mail.To.Add("npatel@precisionglassindustries.com");
+                                            //if (strEmailCC.Length > 0)
+                                            //    mail.CC.Add("npatel@precisionglassindustries.com");
                                             //Testing End
 
                                             mail.Subject = strEmailSubject;
@@ -293,14 +294,14 @@ namespace Auto_OC_Email_Core
                                             clsWriteLog.funWriteLog(strLogFileName, DateTime.Now.ToString() + ": " + strorderNo + " Email send successfully.");
                                             string timestamp = "-" + DateTime.Now.Hour.ToString() + "_" + DateTime.Now.Minute.ToString() + "_" + DateTime.Now.Second.ToString();
                                             //Archive OC ....
-                                            ////clsWriteLog.funWriteLog(strLogFileName, DateTime.Now.ToString() + ": " + strorderNo + " Archiving email file and OC with dollar PDF file.");
-                                            ////strEmailMSGArchive = funCreateFileStructure();
-                                            ////string strOCDollarArcive, strMSGArcive;
-                                            ////strOCDollarArcive = Path.GetFileName(OCDollarFile).Replace(".pdf", timestamp + ".pdf");
-                                            ////Directory.Move(OCDollarFile, strEmailMSGArchive + "\\" + strOCDollarArcive);
-                                            //////Archive Email file ....
-                                            ////strMSGArcive = Path.GetFileName(strmsgfiles).Replace(".msg", timestamp + ".msg").Replace(".eml", timestamp + ".eml");
-                                            ////Directory.Move(strmsgfiles, strEmailMSGArchive + "\\" + strMSGArcive);
+                                            clsWriteLog.funWriteLog(strLogFileName, DateTime.Now.ToString() + ": " + strorderNo + " Archiving email file and OC with dollar PDF file.");
+                                            strEmailMSGArchive = funCreateFileStructure();
+                                            string strOCDollarArcive, strMSGArcive;
+                                            strOCDollarArcive = Path.GetFileName(OCDollarFile).Replace(".pdf", timestamp + ".pdf");
+                                            Directory.Move(OCDollarFile, strEmailMSGArchive + "\\" + strOCDollarArcive);
+                                            //Archive Email file ....
+                                            strMSGArcive = Path.GetFileName(strmsgfiles).Replace(".msg", timestamp + ".msg").Replace(".eml", timestamp + ".eml");
+                                            Directory.Move(strmsgfiles, strEmailMSGArchive + "\\" + strMSGArcive);
 
 
                                         }
@@ -330,30 +331,30 @@ namespace Auto_OC_Email_Core
                                 else
                                 {
 
-                                    string strEmailTo = strNotificationEmail;
-                                    string strEmailCC = "";
-                                    string strEmailSubject = "Missing file with dimensions for OC email to customer. Order# " + strorderNo;
-                                    string strEmailBody = "Hello, \r\n\r\nDimension files for Order# " + strorderNo + " not found.";
-                                    string strEmailAttachment = "";
-                                    clsWriteLog.funWriteLog(strLogFileName, DateTime.Now.ToString() + ": " + strorderNo + " Dimension file missing. Sending notification Email... To : " + strEmailTo);
-                                    clsEmail.SendEmail(strEmailUserName, strEmailUserPwd, strEmailFrom, strEmailTo, strEmailSubject, strEmailBody, strEmailAttachment, strEmailCC);
+                                    //    string strEmailTo = strNotificationEmail;
+                                    //    string strEmailCC = "";
+                                    //    string strEmailSubject = "Missing file with dimensions for OC email to customer. Order# " + strorderNo;
+                                    //    string strEmailBody = "Hello, \r\n\r\nDimension files for Order# " + strorderNo + " not found.";
+                                    //    string strEmailAttachment = "";
+                                        clsWriteLog.funWriteLog(strLogFileName, DateTime.Now.ToString() + ": " + strorderNo + " Dimension file missing.");
+                                    //    clsEmail.SendEmail(strEmailUserName, strEmailUserPwd, strEmailFrom, strEmailTo, strEmailSubject, strEmailBody, strEmailAttachment, strEmailCC);
                                 }
                             }
                             else
                             {
-                                FileInfo fileInfo = new FileInfo(strmsgfiles);
-                                //Console.WriteLine(fileInfo.CreationTime.ToString());
-                                //Console.WriteLine(fileInfo.CreationTime.AddHours(doubleHoursToWait).ToString());
-                                if (fileInfo.CreationTime.AddHours(doubleHoursToWait) < DateTime.Now)
-                                {
-                                    string strEmailTo = strNotificationEmail;
-                                    string strEmailCC = "";
-                                    string strEmailSubject = "Missing file for OC email to customer. Order# " + strorderNo;
-                                    string strEmailBody = "Hello, \r\n\rOrder confirmation files for Order# " + strorderNo + " not found.";
-                                    string strEmailAttachment = "";
-                                    clsWriteLog.funWriteLog(strLogFileName, DateTime.Now.ToString() + ": " + strorderNo + " OC with dollar amount file missing. Sending notification Email... To : " + strEmailTo);
-                                    clsEmail.SendEmail(strEmailUserName, strEmailUserPwd, strEmailFrom, strEmailTo, strEmailSubject, strEmailBody, strEmailAttachment, strEmailCC);
-                                }
+                                //FileInfo fileInfo = new FileInfo(strmsgfiles);
+                                ////Console.WriteLine(fileInfo.CreationTime.ToString());
+                                ////Console.WriteLine(fileInfo.CreationTime.AddHours(doubleHoursToWait).ToString());
+                                //if (fileInfo.CreationTime.AddHours(doubleHoursToWait) < DateTime.Now)
+                                //{
+                                //    string strEmailTo = strNotificationEmail;
+                                //    string strEmailCC = "";
+                                //    string strEmailSubject = "Missing file for OC email to customer. Order# " + strorderNo;
+                                //    string strEmailBody = "Hello, \r\n\rOrder confirmation files for Order# " + strorderNo + " not found.";
+                                //    string strEmailAttachment = "";
+                                    clsWriteLog.funWriteLog(strLogFileName, DateTime.Now.ToString() + ": " + strorderNo + " OC with dollar amount file missing.");
+                                //    clsEmail.SendEmail(strEmailUserName, strEmailUserPwd, strEmailFrom, strEmailTo, strEmailSubject, strEmailBody, strEmailAttachment, strEmailCC);
+                                //}
                             }
                         }
                         else
@@ -364,13 +365,13 @@ namespace Auto_OC_Email_Core
                             FileInfo fileInfo = new FileInfo(strmsgfiles);
                             if (fileInfo.CreationTime.AddHours(doubleHoursToWait) < DateTime.Now)
                             {
-                                string strEmailTo = strNotificationEmail;
-                                string strEmailCC = "";
-                                string strEmailSubject = "Order not found in Orders database. Order# " + strorderNo;
-                                string strEmailBody = "Hello, \r\n\rOrder not found in Orders database. Order# " + strorderNo + " not found.";
-                                string strEmailAttachment = "";
-                                clsWriteLog.funWriteLog(strLogFileName, DateTime.Now.ToString() + ": " + strorderNo + " Order not found in Orders database. Sending notification Email... To : " + strEmailTo);
-                                clsEmail.SendEmail(strEmailUserName, strEmailUserPwd, strEmailFrom, strEmailTo, strEmailSubject, strEmailBody, strEmailAttachment, strEmailCC);
+                                //string strEmailTo = strNotificationEmail;
+                                //string strEmailCC = "";
+                                //string strEmailSubject = "Order not found in Orders database. Order# " + strorderNo;
+                                //string strEmailBody = "Hello, \r\n\rOrder not found in Orders database. Order# " + strorderNo + " not found.";
+                                //string strEmailAttachment = "";
+                               clsWriteLog.funWriteLog(strLogFileName, DateTime.Now.ToString() + ": " + strorderNo + " Order not found in Orders database.");
+                                //clsEmail.SendEmail(strEmailUserName, strEmailUserPwd, strEmailFrom, strEmailTo, strEmailSubject, strEmailBody, strEmailAttachment, strEmailCC);
                             }
                         }
                     }
