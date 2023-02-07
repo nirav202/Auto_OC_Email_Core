@@ -18,7 +18,8 @@ namespace Auto_OC_Email_Core
     {
         private static string strEmailMSGTemplate = "";
         //private static string RegEmailPat = @"<([a-zA-Z0-9_\-\.]+)@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.)|(([a-zA-Z0-9\-]+\.)+))([a-zA-Z]{2,4}|[0-9]{1,3})(\]?)>";
-        private static string RegEmailPat = @"([ <(]?)([a-zA-Z0-9_\-\.]+)@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.)|(([a-zA-Z0-9\-]+\.)+))([a-zA-Z]{2,4}|[0-9]{1,3})(\]?)[> \r\n)]?";
+        //private static string RegEmailPat = @"([ <(]?)([a-zA-Z0-9_\-\.]+)@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.)|(([a-zA-Z0-9\-]+\.)+))([a-zA-Z]{2,4}|[0-9]{1,3})(\]?)[> \r\n)]?";
+        private static string RegEmailPat = @"(?:[a-z0-9!#$%&'*+/=?^_`{|}~-]+(?:\.[a-z0-9!#$%&'*+/=?^_`{|}~-]+)*|""(?:[\x01-\x08\x0b\x0c\x0e-\x1f\x21\x23-\x5b\x5d-\x7f]|\\[\x01-\x09\x0b\x0c\x0e-\x7f])*"")@(?:(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.)+[a-z0-9](?:[a-z0-9-]*[a-z0-9])?|\[(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?|[a-z0-9-]*[a-z0-9]:(?:[\x01-\x08\x0b\x0c\x0e-\x1f\x21-\x5a\x53-\x7f]|\\[\x01-\x09\x0b\x0c\x0e-\x7f])+)\])";
 
         private static string strEmailMSGArchive = ConfigurationManager.AppSettings.Get("ArchiveEmailMSG");
         static void Main(string[] args)
@@ -29,7 +30,7 @@ namespace Auto_OC_Email_Core
             {
                 Directory.CreateDirectory(strLogFile);
             }
-            string strorderNo="";
+            string strorderNo="",strPGIOrderNo="";
             string strLogFileName = strLogFile + "\\" + "Log_" + DateTime.Today.ToShortDateString().Replace('/', '-') + ".txt";
             string strEmailUserName = ConfigurationManager.AppSettings.Get("EmailUserName");
             string strEmailUserPwd = ConfigurationManager.AppSettings.Get("EmailUserPwd");
@@ -68,16 +69,18 @@ namespace Auto_OC_Email_Core
 
                         strMSGFileErr = strmsgfiles;
                         bool dimflag = true;
-                        strorderNo = Path.GetFileName(strmsgfiles).Split('_', ' ')[0];
+                        strorderNo = Path.GetFileName(strmsgfiles).Split('-','_', ' ')[0];
                         clsWriteLog.funWriteLog(strLogFileName, DateTime.Now.ToString() + ": " + strorderNo + " Processing - " + strmsgfiles);
 
                         //Console.WriteLine(Path.GetFileName(strmsgfiles).Split('-', '_', ' ')[0]);
 
-                        cmd.CommandText = "select OH.DeliveryDate,Isnull(OC.Email,'') 'Email',case Isnull(OC.ShipToEmail,'') when 'null' then '' else Isnull(OC.ShipToEmail,'') end  'ShipToEmail',case Isnull(OC.DeliverySlipToEmail,'') when 'null' then '' else Isnull(OC.DeliverySlipToEmail,'') end 'DeliverySlipToEmail',case ISNULL(OC.OrderConfirmationEmail,'') when 'null' then '' else ISNULL(OC.OrderConfirmationEmail,'') end 'OrderConfirmationEmail' from data.OrderHeader OH inner join lookup.OrderCustomer OC on OC.InternalId = OH.CustomerName where OH.DocumentNumber Like '%" + strorderNo + "%'";
+                        cmd.CommandText = "select OH.DocumentNumber,OH.DeliveryDate,Isnull(OC.Email,'') 'Email',case Isnull(OC.ShipToEmail,'') when 'null' then '' else Isnull(OC.ShipToEmail,'') end  'ShipToEmail',case Isnull(OC.DeliverySlipToEmail,'') when 'null' then '' else Isnull(OC.DeliverySlipToEmail,'') end 'DeliverySlipToEmail',case ISNULL(OC.OrderConfirmationEmail,'') when 'null' then '' else ISNULL(OC.OrderConfirmationEmail,'') end 'OrderConfirmationEmail' from data.OrderHeader OH inner join lookup.OrderCustomer OC on OC.InternalId = OH.CustomerName where OH.DocumentNumber Like '%" + strorderNo + "%'";
                         dtOrder.Clear();
                         adpt.Fill(dtOrder);
                         if (dtOrder.Rows.Count > 0)
                         {
+                            strPGIOrderNo = dtOrder.Rows[0]["DocumentNumber"].ToString();
+
                             //get the additional email list for OrderConfirmation if they exist in database...
                             string additinalEmailList = dtOrder.Rows[0]["OrderConfirmationEmail"].ToString();
 
@@ -103,7 +106,7 @@ namespace Auto_OC_Email_Core
                                 foreach (string strocfilesdim in Directory.GetFiles(strOCFileDim, "*.pdf"))
                                 {
                                     //if (Path.GetFileName(strocfilesdim).Remove(0, 12).Split('-', '_', ' ')[0].StartsWith(strorderNo))
-                                    if (Path.GetFileName(strocfilesdim).Contains(strorderNo))
+                                    if (Path.GetFileName(strocfilesdim).Contains("Glass Order "+strorderNo))
                                     {
                                         //Console.WriteLine(Path.GetFileName(strocfilesdim));
                                         OCDimFile = strocfilesdim;
@@ -129,7 +132,8 @@ namespace Auto_OC_Email_Core
                                         strEmailTo = Regex.Match(EmailMsg.GetEmailSender(false, false), RegEmailPat).Value.Replace("<", "").Replace(">", "").Replace("(", "").Replace(")", "");
                                         strEmailCC = funGetCCEmails(EmailMsg.GetEmailRecipients(MsgReader.Outlook.RecipientType.To, false, false));//, RegEmailPat).Value.Replace("<", "").Replace(">", "").Replace("(", "").Replace(")", "");
                                         strEmailCC = strEmailCC + (strEmailCC.Trim().Length > 0 ? "," : "") + funGetCCEmails(EmailMsg.GetEmailRecipients(MsgReader.Outlook.RecipientType.Cc, false, false));
-                                        strEmailSubject = "PGINo " + strorderNo + " " + EmailMsg.SubjectNormalized;
+                                        //strEmailSubject = "PGINo " + strorderNo + " " + EmailMsg.SubjectNormalized;
+                                        strEmailSubject =  EmailMsg.SubjectNormalized;
                                         EmailMsg.Dispose();
                                     }
                                     else // For .eml files......
@@ -147,7 +151,8 @@ namespace Auto_OC_Email_Core
                                         {
                                             strEmailCC = strEmailCC + (strEmailCC.Trim().Length > 0 ? "," : "") + funGetCCEmails(recipient.MailAddress.Address);
                                         }
-                                        strEmailSubject = "PGINo " + strorderNo + " " + EmailEml.Headers.Subject;
+                                        //strEmailSubject = "PGINo " + strorderNo + " " + EmailEml.Headers.Subject;
+                                        strEmailSubject =  EmailEml.Headers.Subject;
 
                                     }
 
@@ -231,7 +236,7 @@ namespace Auto_OC_Email_Core
                                             smtpClient.UseDefaultCredentials = false;
 
                                             smtpClient.Credentials = new System.Net.NetworkCredential(strEmailUserName, strEmailUserPwd);
-                                            smtpClient.Port = 25;  // 587;
+                                            smtpClient.Port = 587; //25
                                             smtpClient.Timeout = (60 * 5 * 1000);
                                             smtpClient.EnableSsl = true;
 
@@ -263,14 +268,13 @@ namespace Auto_OC_Email_Core
                                             if (strEmailCC.Trim().Length > 0)
                                                 mail.CC.Add(strEmailCC);
 
-                                            //Testing 
+                                            //Testing
                                             //mail.To.Add("npatel@precisionglassindustries.com");
                                             //if (strEmailCC.Length > 0)
                                             //    mail.CC.Add("npatel@precisionglassindustries.com");
                                             //Testing End
-
                                             mail.Subject = strEmailSubject;
-                                            mail.Body = String.Format(strEmailBody, strDeliveryDT, att1.ContentId, att2.ContentId, att3.ContentId, att4.ContentId, att5.ContentId, att6.ContentId, att7.ContentId,att8.ContentId);    //, strEmailTo, strEmailCC);
+                                            mail.Body = String.Format(strEmailBody, strDeliveryDT, strPGIOrderNo, att1.ContentId, att2.ContentId, att3.ContentId, att4.ContentId, att5.ContentId, att6.ContentId, att7.ContentId,att8.ContentId);    //, strEmailTo, strEmailCC);
 
                                             mail.IsBodyHtml = true;
                                             mail.Attachments.Add(att1);
