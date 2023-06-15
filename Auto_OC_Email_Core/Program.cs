@@ -30,7 +30,7 @@ namespace Auto_OC_Email_Core
             {
                 Directory.CreateDirectory(strLogFile);
             }
-            string strorderNo="",strPGIOrderNo="";
+            string strorderNo = "", strPGIOrderNo = "";
             string strLogFileName = strLogFile + "\\" + "Log_" + DateTime.Today.ToShortDateString().Replace('/', '-') + ".txt";
             string strEmailUserName = ConfigurationManager.AppSettings.Get("EmailUserName");
             string strEmailUserPwd = ConfigurationManager.AppSettings.Get("EmailUserPwd");
