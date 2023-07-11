@@ -325,7 +325,7 @@ namespace Auto_OC_Email_Core
                                         {
                                             clsWriteLog.funWriteLog(strLogFileName, DateTime.Now.ToString() + ": " + strorderNo + " Email send Error." + ex.Message);
                                             string strEmailSub = "Application:- Auto_OC_Email_Core Error sending email Order# " + strorderNo;
-                                            string strEmailBody = "Hello, \r\n\r\nError occured while sending email files for Order# " + strorderNo + ".";
+                                            string strEmailBody = "Hello, \r\n\r\nError occured while sending email files for Order# " + strorderNo + ". \r\nException occured : " + ex.Message;
                                             string strEmailAttachment = "";
                                             clsWriteLog.funWriteLog(strLogFileName, DateTime.Now.ToString() + ": " + strorderNo + " Error occured while sending email files. Sending notification Email... To : " + strErrorEmail);
                                             clsEmail.SendEmail(strEmailUserName, strEmailUserPwd, strEmailFrom, strErrorEmail, strEmailSub, strEmailBody, strEmailAttachment, "");
@@ -414,7 +414,7 @@ namespace Auto_OC_Email_Core
             {
                 clsWriteLog.funWriteLog(strLogFileName, DateTime.Now.ToString() + ": Exception occured : " + ex.Message);
                 string strEmailSub = "Application:- Auto_OC_Email_Core Error processing. Order# " + strorderNo;
-                string strEmailBody = "Hello, \r\n\r\nError occured while processing email files for Order# " + strorderNo + ".";
+                string strEmailBody = "Hello, \r\n\r\nError occured while processing email files for Order# " + strorderNo + ". \r\nException occured : "+ex.Message;
                 string strEmailAttachment = "";
                 clsWriteLog.funWriteLog(strLogFileName, DateTime.Now.ToString() + ": " + strorderNo + " Error occured while processing email files. Sending notification Email... To : " + strErrorEmail);
                 clsEmail.SendEmail(strEmailUserName, strEmailUserPwd, strEmailFrom, strErrorEmail, strEmailSub, strEmailBody, strEmailAttachment, "");
