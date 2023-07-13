@@ -54,14 +54,15 @@ namespace Auto_OC_Email_Core
             clsWriteLog.funWriteLog(strLogFileName, DateTime.Now.ToString() + ": Started Auto Email OC application...");
 
             string OCDollarFile = "", OCDimFile = "",strMSGFileErr="";
-            try
-            {
+            
             
                 cmd.Connection = sqlcon;
                 cmd.CommandType = CommandType.Text;
                 adpt.SelectCommand = cmd;
 
-                foreach (string strmsgfiles in Directory.GetFiles(strEmailMSGLocation))
+            foreach (string strmsgfiles in Directory.GetFiles(strEmailMSGLocation))
+            {
+                try
                 {
                     //Process files that are email message files that ends with .msg or .eml.....
                     if (strmsgfiles.EndsWith(".msg") || strmsgfiles.EndsWith(".eml"))
@@ -69,7 +70,7 @@ namespace Auto_OC_Email_Core
 
                         strMSGFileErr = strmsgfiles;
                         bool dimflag = true;
-                        strorderNo = Path.GetFileName(strmsgfiles).Split('-','_', ' ')[0];
+                        strorderNo = Path.GetFileName(strmsgfiles).Split('-', '_', ' ')[0];
                         clsWriteLog.funWriteLog(strLogFileName, DateTime.Now.ToString() + ": " + strorderNo + " Processing - " + strmsgfiles);
 
                         //Console.WriteLine(Path.GetFileName(strmsgfiles).Split('-', '_', ' ')[0]);
@@ -106,7 +107,7 @@ namespace Auto_OC_Email_Core
                                 foreach (string strocfilesdim in Directory.GetFiles(strOCFileDim, "*.pdf"))
                                 {
                                     //if (Path.GetFileName(strocfilesdim).Remove(0, 12).Split('-', '_', ' ')[0].StartsWith(strorderNo))
-                                    if (Path.GetFileName(strocfilesdim).Contains("Glass Order "+strorderNo))
+                                    if (Path.GetFileName(strocfilesdim).Contains("Glass Order " + strorderNo))
                                     {
                                         //Console.WriteLine(Path.GetFileName(strocfilesdim));
                                         OCDimFile = strocfilesdim;
@@ -133,7 +134,7 @@ namespace Auto_OC_Email_Core
                                         strEmailCC = funGetCCEmails(EmailMsg.GetEmailRecipients(MsgReader.Outlook.RecipientType.To, false, false));//, RegEmailPat).Value.Replace("<", "").Replace(">", "").Replace("(", "").Replace(")", "");
                                         strEmailCC = strEmailCC + (strEmailCC.Trim().Length > 0 ? "," : "") + funGetCCEmails(EmailMsg.GetEmailRecipients(MsgReader.Outlook.RecipientType.Cc, false, false));
                                         //strEmailSubject = "PGINo " + strorderNo + " " + EmailMsg.SubjectNormalized;
-                                        strEmailSubject =  EmailMsg.SubjectNormalized;
+                                        strEmailSubject = EmailMsg.SubjectNormalized;
                                         EmailMsg.Dispose();
                                     }
                                     else // For .eml files......
@@ -152,7 +153,7 @@ namespace Auto_OC_Email_Core
                                             strEmailCC = strEmailCC + (strEmailCC.Trim().Length > 0 ? "," : "") + funGetCCEmails(recipient.MailAddress.Address);
                                         }
                                         //strEmailSubject = "PGINo " + strorderNo + " " + EmailEml.Headers.Subject;
-                                        strEmailSubject =  EmailEml.Headers.Subject;
+                                        strEmailSubject = EmailEml.Headers.Subject;
 
                                     }
 
@@ -274,7 +275,7 @@ namespace Auto_OC_Email_Core
                                             //    mail.CC.Add("npatel@precisionglassindustries.com");
                                             //Testing End
                                             mail.Subject = strEmailSubject;
-                                            mail.Body = String.Format(strEmailBody, strDeliveryDT, strPGIOrderNo, att1.ContentId, att2.ContentId, att3.ContentId, att4.ContentId, att5.ContentId, att6.ContentId, att7.ContentId,att8.ContentId);    //, strEmailTo, strEmailCC);
+                                            mail.Body = String.Format(strEmailBody, strDeliveryDT, strPGIOrderNo, att1.ContentId, att2.ContentId, att3.ContentId, att4.ContentId, att5.ContentId, att6.ContentId, att7.ContentId, att8.ContentId);    //, strEmailTo, strEmailCC);
 
                                             mail.IsBodyHtml = true;
                                             mail.Attachments.Add(att1);
@@ -302,7 +303,7 @@ namespace Auto_OC_Email_Core
                                             SqlCommand cmd1 = new SqlCommand();
                                             cmd1.Connection = sqlcon1;
                                             cmd1.CommandType = CommandType.Text;
-                                            cmd1.CommandText = "update data.OrderDiff set EmailConfirmationToCustomerSent = 1 where DocumentNumber like '" + strorderNo+"%'";
+                                            cmd1.CommandText = "update data.OrderDiff set EmailConfirmationToCustomerSent = 1 where DocumentNumber like '" + strorderNo + "%'";
                                             sqlcon1.Open();
                                             cmd1.ExecuteNonQuery();
                                             sqlcon1.Close();
@@ -352,7 +353,7 @@ namespace Auto_OC_Email_Core
                                     //    string strEmailSubject = "Missing file with dimensions for OC email to customer. Order# " + strorderNo;
                                     //    string strEmailBody = "Hello, \r\n\r\nDimension files for Order# " + strorderNo + " not found.";
                                     //    string strEmailAttachment = "";
-                                        clsWriteLog.funWriteLog(strLogFileName, DateTime.Now.ToString() + ": " + strorderNo + " Dimension file missing.");
+                                    clsWriteLog.funWriteLog(strLogFileName, DateTime.Now.ToString() + ": " + strorderNo + " Dimension file missing.");
                                     //    clsEmail.SendEmail(strEmailUserName, strEmailUserPwd, strEmailFrom, strEmailTo, strEmailSubject, strEmailBody, strEmailAttachment, strEmailCC);
                                 }
                             }
@@ -368,7 +369,7 @@ namespace Auto_OC_Email_Core
                                 //    string strEmailSubject = "Missing file for OC email to customer. Order# " + strorderNo;
                                 //    string strEmailBody = "Hello, \r\n\rOrder confirmation files for Order# " + strorderNo + " not found.";
                                 //    string strEmailAttachment = "";
-                                    clsWriteLog.funWriteLog(strLogFileName, DateTime.Now.ToString() + ": " + strorderNo + " OC with dollar amount file missing.");
+                                clsWriteLog.funWriteLog(strLogFileName, DateTime.Now.ToString() + ": " + strorderNo + " OC with dollar amount file missing.");
                                 //    clsEmail.SendEmail(strEmailUserName, strEmailUserPwd, strEmailFrom, strEmailTo, strEmailSubject, strEmailBody, strEmailAttachment, strEmailCC);
                                 //}
                             }
@@ -386,12 +387,38 @@ namespace Auto_OC_Email_Core
                                 //string strEmailSubject = "Order not found in Orders database. Order# " + strorderNo;
                                 //string strEmailBody = "Hello, \r\n\rOrder not found in Orders database. Order# " + strorderNo + " not found.";
                                 //string strEmailAttachment = "";
-                               clsWriteLog.funWriteLog(strLogFileName, DateTime.Now.ToString() + ": " + strorderNo + " Order not found in Orders database.");
+                                clsWriteLog.funWriteLog(strLogFileName, DateTime.Now.ToString() + ": " + strorderNo + " Order not found in Orders database.");
                                 //clsEmail.SendEmail(strEmailUserName, strEmailUserPwd, strEmailFrom, strEmailTo, strEmailSubject, strEmailBody, strEmailAttachment, strEmailCC);
                             }
                         }
                     }
                 }
+                catch (Exception ex)
+                {
+                    clsWriteLog.funWriteLog(strLogFileName, DateTime.Now.ToString() + ": Exception occured : " + ex.Message);
+                    //////Removed sending error message emails as most of the time error message is for  emails files are being used by another process.
+                    ///Ammar's process is in middle of copying files as a result this process gives exception that file is being used by another process.
+                    //////string strEmailSub = "Application:- Auto_OC_Email_Core Error processing. Order# " + strorderNo;
+                    //////string strEmailBody = "Hello, \r\n\r\nError occured while processing email files for Order# " + strorderNo + ". \r\nException occured : " + ex.Message;
+                    //////string strEmailAttachment = "";
+                    //////clsWriteLog.funWriteLog(strLogFileName, DateTime.Now.ToString() + ": " + strorderNo + " Error occured while processing email files. Sending notification Email... To : " + strErrorEmail);
+                    //////clsEmail.SendEmail(strEmailUserName, strEmailUserPwd, strEmailFrom, strErrorEmail, strEmailSub, strEmailBody, strEmailAttachment, "");
+                    /////////////////////////////////////////////////////////////////////
+                    
+
+
+                    //string timestamp = "-" + DateTime.Now.Hour.ToString() + "_" + DateTime.Now.Minute.ToString() + "_" + DateTime.Now.Second.ToString();
+                    //Moving MSG file to Error folder ....
+                    //clsWriteLog.funWriteLog(strLogFileName, DateTime.Now.ToString() + ": " + strorderNo + " Moving email file and OC with dollar PDF file to Error folder.");
+                    //string strEmailMSGErr = ConfigurationManager.AppSettings.Get("ErrorMSG");
+                    //string strOCDollarArcive, strMSGArcive;
+                    //strOCDollarArcive = Path.GetFileName(OCDollarFile).Replace(".pdf", timestamp + ".pdf");
+                    //Directory.Move(OCDollarFile, strEmailMSGErr + "\\" + strOCDollarArcive);
+                    ////Archive Email MSG file ....
+                    //strMSGArcive = Path.GetFileName(strMSGFileErr).Replace(".msg", timestamp + ".msg").Replace(".eml", timestamp + ".eml");
+                    //Directory.Move(strMSGFileErr, strEmailMSGErr + "\\" + strMSGArcive);
+                }
+            }
 
                 Thread.Sleep(3000);
                 //Process PDF for purge...
@@ -409,27 +436,7 @@ namespace Auto_OC_Email_Core
                         }
                     }
 
-            }
-            catch (Exception ex)
-            {
-                clsWriteLog.funWriteLog(strLogFileName, DateTime.Now.ToString() + ": Exception occured : " + ex.Message);
-                string strEmailSub = "Application:- Auto_OC_Email_Core Error processing. Order# " + strorderNo;
-                string strEmailBody = "Hello, \r\n\r\nError occured while processing email files for Order# " + strorderNo + ". \r\nException occured : "+ex.Message;
-                string strEmailAttachment = "";
-                clsWriteLog.funWriteLog(strLogFileName, DateTime.Now.ToString() + ": " + strorderNo + " Error occured while processing email files. Sending notification Email... To : " + strErrorEmail);
-                clsEmail.SendEmail(strEmailUserName, strEmailUserPwd, strEmailFrom, strErrorEmail, strEmailSub, strEmailBody, strEmailAttachment, "");
-
-                string timestamp = "-" + DateTime.Now.Hour.ToString() + "_" + DateTime.Now.Minute.ToString() + "_" + DateTime.Now.Second.ToString();
-                //Moving MSG file to Error folder ....
-                //clsWriteLog.funWriteLog(strLogFileName, DateTime.Now.ToString() + ": " + strorderNo + " Moving email file and OC with dollar PDF file to Error folder.");
-                //string strEmailMSGErr = ConfigurationManager.AppSettings.Get("ErrorMSG");
-                //string strOCDollarArcive, strMSGArcive;
-                //strOCDollarArcive = Path.GetFileName(OCDollarFile).Replace(".pdf", timestamp + ".pdf");
-                //Directory.Move(OCDollarFile, strEmailMSGErr + "\\" + strOCDollarArcive);
-                ////Archive Email MSG file ....
-                //strMSGArcive = Path.GetFileName(strMSGFileErr).Replace(".msg", timestamp + ".msg").Replace(".eml", timestamp + ".eml");
-                //Directory.Move(strMSGFileErr, strEmailMSGErr + "\\" + strMSGArcive);
-            }
+            
         
     }
 
