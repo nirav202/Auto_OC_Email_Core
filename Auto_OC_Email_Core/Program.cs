@@ -53,12 +53,12 @@ namespace Auto_OC_Email_Core
 
             clsWriteLog.funWriteLog(strLogFileName, DateTime.Now.ToString() + ": Started Auto Email OC application...");
 
-            string OCDollarFile = "", OCDimFile = "",strMSGFileErr="";
-            
-            
-                cmd.Connection = sqlcon;
-                cmd.CommandType = CommandType.Text;
-                adpt.SelectCommand = cmd;
+            string OCDollarFile = "", OCDimFile = "", strMSGFileErr = "";
+
+
+            cmd.Connection = sqlcon;
+            cmd.CommandType = CommandType.Text;
+            adpt.SelectCommand = cmd;
 
             foreach (string strmsgfiles in Directory.GetFiles(strEmailMSGLocation))
             {
@@ -404,7 +404,7 @@ namespace Auto_OC_Email_Core
                     //////clsWriteLog.funWriteLog(strLogFileName, DateTime.Now.ToString() + ": " + strorderNo + " Error occured while processing email files. Sending notification Email... To : " + strErrorEmail);
                     //////clsEmail.SendEmail(strEmailUserName, strEmailUserPwd, strEmailFrom, strErrorEmail, strEmailSub, strEmailBody, strEmailAttachment, "");
                     /////////////////////////////////////////////////////////////////////
-                    
+
 
 
                     //string timestamp = "-" + DateTime.Now.Hour.ToString() + "_" + DateTime.Now.Minute.ToString() + "_" + DateTime.Now.Second.ToString();
@@ -420,25 +420,37 @@ namespace Auto_OC_Email_Core
                 }
             }
 
-                Thread.Sleep(3000);
-                //Process PDF for purge...
-                foreach (string strPDFfiles in Directory.GetFiles(strEmailMSGLocation, "*.pdf"))
-                    {
-                        //send notification if set time is elasped and order does not found in database...
-                        FileInfo fileInfo = new FileInfo(strPDFfiles);
-                        if ((fileInfo.CreationTime.DayOfWeek == DayOfWeek.Friday ? fileInfo.CreationTime.AddHours(doublePDFPurgeHoursToWait + 48) : fileInfo.CreationTime.AddHours(doublePDFPurgeHoursToWait)) < DateTime.Now)
-                        {
-                            strorderNo = Path.GetFileName(strPDFfiles).Split('-', '_', ' ')[0];
-                            clsWriteLog.funWriteLog(strLogFileName, DateTime.Now.ToString() + ": " + strorderNo + " Deleted " + strPDFfiles + ". No .msg or .eml file found for " + doublePDFPurgeHoursToWait.ToString() + " hours.");
-                            File.Delete(strPDFfiles);
-                            //Directory.Delete(strPDFfiles);
+            Thread.Sleep(3000);
+            //Process PDF for purge...
+            SqlConnection sqlcon2 = new SqlConnection(ConfigurationManager.ConnectionStrings["dbcon"].ToString());
+            SqlCommand cmd2 = new SqlCommand();
+            cmd2.Connection = sqlcon2;
+            cmd2.CommandType = CommandType.Text;
+            foreach (string strPDFfiles in Directory.GetFiles(strEmailMSGLocation, "*.pdf"))
+            {
+                FileInfo fileInfo = new FileInfo(strPDFfiles);
+                if ((fileInfo.CreationTime.DayOfWeek == DayOfWeek.Friday ? fileInfo.CreationTime.AddHours(doublePDFPurgeHoursToWait + 48) : fileInfo.CreationTime.AddHours(doublePDFPurgeHoursToWait)) < DateTime.Now)
+                {
+                    strorderNo = Path.GetFileName(strPDFfiles).Split('-', '_', ' ')[0];
 
-                        }
+                    //Check Order Difference Table  if order# exist in the table. If it does then do not delete the fiels......
+                    cmd2.CommandText = "select * from data.OrderDiff where DocumentNumber like '" + strorderNo + "%'";
+                    sqlcon2.Open();
+                    int r = cmd2.ExecuteNonQuery();
+                    sqlcon2.Close();
+                    if (r > 0)
+                    {
+                        clsWriteLog.funWriteLog(strLogFileName, DateTime.Now.ToString() + ": " + strorderNo + " Deleted " + strPDFfiles + ". No .msg or .eml file found for " + doublePDFPurgeHoursToWait.ToString() + " hours.");
+                        File.Delete(strPDFfiles);
+                        //Directory.Delete(strPDFfiles);
                     }
 
-            
-        
-    }
+                }
+            }
+
+
+
+        }
 
         private static string funCreateFileStructure()
         {
