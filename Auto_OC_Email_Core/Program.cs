@@ -303,9 +303,14 @@ namespace Auto_OC_Email_Core
                                             SqlCommand cmd1 = new SqlCommand();
                                             cmd1.Connection = sqlcon1;
                                             cmd1.CommandType = CommandType.Text;
-                                            cmd1.CommandText = "update data.OrderDiff set EmailConfirmationToCustomerSent = 1 where DocumentNumber like '" + strorderNo + "%'";
+                                            cmd1.CommandText = "update data.OrderDiff set EmailConfirmationToCustomerSent = 1,  DateEmailSent = GetDate() where DocumentNumber like '" + strorderNo + "%'";
                                             sqlcon1.Open();
-                                            cmd1.ExecuteNonQuery();
+                                            int i = 1,rowsupdated=0;
+                                            while (i <= 3 && rowsupdated <= 0)
+                                            {
+                                                rowsupdated = cmd1.ExecuteNonQuery();
+                                                i++;
+                                            }
                                             sqlcon1.Close();
                                             clsWriteLog.funWriteLog(strLogFileName, DateTime.Now.ToString() + ": " + strorderNo + " data.OrderDiff Table has been updated to set EmailConfirmationToCustomerSent flag.");
 
