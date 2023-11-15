@@ -75,7 +75,7 @@ namespace Auto_OC_Email_Core
 
                         //Console.WriteLine(Path.GetFileName(strmsgfiles).Split('-', '_', ' ')[0]);
 
-                        cmd.CommandText = "select OH.DocumentNumber,OH.DeliveryDate,Isnull(OC.Email,'') 'Email',case Isnull(OC.ShipToEmail,'') when 'null' then '' else Isnull(OC.ShipToEmail,'') end  'ShipToEmail',case Isnull(OC.DeliverySlipToEmail,'') when 'null' then '' else Isnull(OC.DeliverySlipToEmail,'') end 'DeliverySlipToEmail',case ISNULL(OC.OrderConfirmationEmail,'') when 'null' then '' else ISNULL(OC.OrderConfirmationEmail,'') end 'OrderConfirmationEmail' from data.OrderHeader OH inner join lookup.OrderCustomer OC on OC.InternalId = OH.CustomerName where OH.DocumentNumber Like '%" + strorderNo + "%'";
+                        cmd.CommandText = "select OH.DocumentNumber,OH.DeliveryDate,Isnull(OC.Email,'') 'Email',case Isnull(OC.ShipToEmail,'') when 'null' then '' else Isnull(OC.ShipToEmail,'') end  'ShipToEmail',case Isnull(OC.DeliverySlipToEmail,'') when 'null' then '' else Isnull(OC.DeliverySlipToEmail,'') end 'DeliverySlipToEmail',case ISNULL(OC.OrderConfirmationEmail,'') when 'null' then '' else ISNULL(OC.OrderConfirmationEmail,'') end 'OrderConfirmationEmail' from data.OrderHeader OH inner join lookup.OrderCustomer OC on OC.InternalId = OH.CustomerName inner join data.OrderDiff OD on OD.DocumentNumber = OH.DocumentNumber where OH.DocumentNumber Like '%" + strorderNo + "%'";
                         dtOrder.Clear();
                         adpt.Fill(dtOrder);
                         if (dtOrder.Rows.Count > 0)
@@ -381,7 +381,7 @@ namespace Auto_OC_Email_Core
                         }
                         else
                         {
-                            clsWriteLog.funWriteLog(strLogFileName, DateTime.Now.ToString() + ": " + strorderNo + " Order not found in Orders database : " + strorderNo);
+                            clsWriteLog.funWriteLog(strLogFileName, DateTime.Now.ToString() + ": " + strorderNo + " Order not found in either OrderHeader or OrderDiff Table : " + strorderNo);
 
                             //send notification if set time is elasped and order does not found in database...
                             FileInfo fileInfo = new FileInfo(strmsgfiles);
@@ -392,7 +392,7 @@ namespace Auto_OC_Email_Core
                                 //string strEmailSubject = "Order not found in Orders database. Order# " + strorderNo;
                                 //string strEmailBody = "Hello, \r\n\rOrder not found in Orders database. Order# " + strorderNo + " not found.";
                                 //string strEmailAttachment = "";
-                                clsWriteLog.funWriteLog(strLogFileName, DateTime.Now.ToString() + ": " + strorderNo + " Order not found in Orders database.");
+                                clsWriteLog.funWriteLog(strLogFileName, DateTime.Now.ToString() + ": " + strorderNo + " Order not found in either OrderHeader or OrderDiff Table.");
                                 //clsEmail.SendEmail(strEmailUserName, strEmailUserPwd, strEmailFrom, strEmailTo, strEmailSubject, strEmailBody, strEmailAttachment, strEmailCC);
                             }
                         }
