@@ -2,20 +2,38 @@
 
   <PropertyGroup>
     <OutputType>Exe</OutputType>
-    <TargetFramework>netcoreapp3.1</TargetFramework>
+    <TargetFramework>net8.0-windows10.0.17763.0</TargetFramework>
+    <StartupObject>Auto_OC_Email_Core.Program</StartupObject>
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Microsoft.Graph.Core" Version="3.0.11" />
-    <PackageReference Include="MsgReader" Version="4.0.2" />
-    <PackageReference Include="System.Configuration.ConfigurationManager" Version="5.0.0" />
-    <PackageReference Include="System.Data.SqlClient" Version="4.8.2" />
+    <PackageReference Include="Microsoft.Data.SqlClient" Version="5.2.2" />
+    <PackageReference Include="Microsoft.Extensions.Configuration" Version="9.0.0" />
+    <PackageReference Include="Microsoft.Extensions.Configuration.Json" Version="9.0.0" />
+    <PackageReference Include="Microsoft.Extensions.Hosting" Version="9.0.0" />
+    <PackageReference Include="Microsoft.Graph.Core" Version="3.2.1" />
+    <PackageReference Include="MsgReader" Version="5.7.0" />
   </ItemGroup>
 
   <ItemGroup>
     <Reference Include="Utilities_Core">
       <HintPath>..\..\Utilities_Core\Utilities_Core\bin\Release\netcoreapp3.1\Utilities_Core.dll</HintPath>
     </Reference>
+  </ItemGroup>
+
+  <ItemGroup>
+    <Content Include="AppSettings.json;AppSettings.Dev.json;AppSettings.Prod.json">
+      <DependentUpon>AppSettings.jspm</DependentUpon>
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+  </ItemGroup>
+  <ItemGroup>
+    <None Update="EmailMSGTemplate\BlackList.xml">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="EmailMSGTemplate\EmailSalesTeam.htm">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
   </ItemGroup>
 
 </Project>

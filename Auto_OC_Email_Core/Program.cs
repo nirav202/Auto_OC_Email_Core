@@ -3,8 +3,9 @@ using System.Text;
 using System.IO;
 using System.Text.RegularExpressions;
 using Utilities_Core;
-using System.Configuration;
-using System.Data.SqlClient;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Hosting;
+using Microsoft.Data.SqlClient;
 using System.Data;
 using System.Xml;
 using System.Collections.Generic;
@@ -20,32 +21,38 @@ namespace Auto_OC_Email_Core
         //private static string RegEmailPat = @"<([a-zA-Z0-9_\-\.]+)@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.)|(([a-zA-Z0-9\-]+\.)+))([a-zA-Z]{2,4}|[0-9]{1,3})(\]?)>";
         //private static string RegEmailPat = @"([ <(]?)([a-zA-Z0-9_\-\.]+)@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.)|(([a-zA-Z0-9\-]+\.)+))([a-zA-Z]{2,4}|[0-9]{1,3})(\]?)[> \r\n)]?";
         private static string RegEmailPat = @"(?:[a-z0-9!#$%&'*+/=?^_`{|}~-]+(?:\.[a-z0-9!#$%&'*+/=?^_`{|}~-]+)*|""(?:[\x01-\x08\x0b\x0c\x0e-\x1f\x21\x23-\x5b\x5d-\x7f]|\\[\x01-\x09\x0b\x0c\x0e-\x7f])*"")@(?:(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.)+[a-z0-9](?:[a-z0-9-]*[a-z0-9])?|\[(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?|[a-z0-9-]*[a-z0-9]:(?:[\x01-\x08\x0b\x0c\x0e-\x1f\x21-\x5a\x53-\x7f]|\\[\x01-\x09\x0b\x0c\x0e-\x7f])+)\])";
+        static HostApplicationBuilder builder = Host.CreateApplicationBuilder();
+        private static string strEmailMSGArchive =string.Empty;
 
-        private static string strEmailMSGArchive = ConfigurationManager.AppSettings.Get("ArchiveEmailMSG");
         static void Main(string[] args)
         {
-
-            string strLogFile = ConfigurationManager.AppSettings.Get("LogFile");
+            //HostApplicationBuilder builder = Host.CreateApplicationBuilder();
+            IHostEnvironment env = builder.Environment;
+            builder.Configuration.AddJsonFile("AppSettings.json",optional:true,reloadOnChange:true)
+                .AddJsonFile($"AppSettings.{env.EnvironmentName}.json",true,true);
+            strEmailMSGArchive = builder.Configuration.GetValue<string>("AppSettings:ArchiveEmailMSG");
+            string strLogFile = builder.Configuration.GetValue<string> ("AppSettings:LogFile");
             if (!Directory.Exists(strLogFile))
             {
                 Directory.CreateDirectory(strLogFile);
             }
             string strorderNo = "", strPGIOrderNo = "";
             string strLogFileName = strLogFile + "\\" + "Log_" + DateTime.Today.ToShortDateString().Replace('/', '-') + ".txt";
-            string strEmailUserName = ConfigurationManager.AppSettings.Get("EmailUserName");
-            string strEmailUserPwd = ConfigurationManager.AppSettings.Get("EmailUserPwd");
-            string strEmailFrom = ConfigurationManager.AppSettings.Get("EmailFrom");
-            string strEmailMSGLocation = ConfigurationManager.AppSettings.Get("EmailMSGLocation");
+            string strEmailUserName = builder.Configuration.GetValue<string>("AppSettings:EmailUserName");
+            string strEmailUserPwd = builder.Configuration.GetValue<string>("AppSettings:EmailUserPwd");
+            string strEmailFrom = builder.Configuration.GetValue<string>("AppSettings:EmailFrom");
+            string strEmailDoNotSendList = builder.Configuration.GetValue<string>("AppSettings:EmailDoNotSendList");
+            string strEmailMSGLocation = builder.Configuration.GetValue<string>("AppSettings:EmailMSGLocation");
 
-            string strOCFileDollar = ConfigurationManager.AppSettings.Get("OCFileDollar");
-            string strOCFileDim = ConfigurationManager.AppSettings.Get("OCFileDim");
-            string strErrorEmail = ConfigurationManager.AppSettings.Get("ErrorEmail");
-            string strNotificationEmail = ConfigurationManager.AppSettings.Get("NotificationEmail");
-            strEmailMSGTemplate = ConfigurationManager.AppSettings.Get("EmailMSGTeplate");
-            double doubleHoursToWait = Convert.ToDouble(ConfigurationManager.AppSettings.Get("OCNotificationHoursToWait"));
-            double doublePDFPurgeHoursToWait = Convert.ToDouble(ConfigurationManager.AppSettings.Get("PDFPurgeHoursToWait"));
+            string strOCFileDollar = builder.Configuration.GetValue<string>("AppSettings:OCFileDollar");
+            string strOCFileDim = builder.Configuration.GetValue<string>("AppSettings:OCFileDim");
+            string strErrorEmail = builder.Configuration.GetValue<string>("AppSettings:ErrorEmail");
+            string strNotificationEmail = builder.Configuration.GetValue<string>("AppSettings:NotificationEmail");
+            strEmailMSGTemplate = builder.Configuration.GetValue<string>("AppSettings:EmailMSGTeplate");
+            double doubleHoursToWait = builder.Configuration.GetValue<double>("AppSettings:OCNotificationHoursToWait");
+            double doublePDFPurgeHoursToWait = builder.Configuration.GetValue<double>("AppSettings:PDFPurgeHoursToWait");
 
-            SqlConnection sqlcon = new SqlConnection(ConfigurationManager.ConnectionStrings["dbcon"].ToString());
+            SqlConnection sqlcon = new SqlConnection(builder.Configuration.GetValue<string>("ConnectionStrings:SQLOrder"));
             SqlCommand cmd = new SqlCommand();
             SqlDataAdapter adpt = new SqlDataAdapter();
             DataTable dtOrder = new DataTable();
@@ -218,7 +225,6 @@ namespace Auto_OC_Email_Core
                                     //Sending Email.....
                                     else
                                     {
-                                        clsWriteLog.funWriteLog(strLogFileName, DateTime.Now.ToString() + ": " + strorderNo + " Sending OC Email... To : " + strEmailTo + (strEmailCC.Trim().Length > 0 ? " CC : " + strEmailCC : ""));
 
                                         try
                                         {
@@ -245,22 +251,46 @@ namespace Auto_OC_Email_Core
 
                                             MailMessage mail = new MailMessage();
 
-                                            Attachment att1 = new Attachment(strEmailMSGTemplate + @"\image001.jpg");
-                                            att1.ContentDisposition.Inline = true;
-                                            Attachment att2 = new Attachment(strEmailMSGTemplate + @"\img_phone.png");
-                                            att2.ContentDisposition.Inline = true;
-                                            Attachment att3 = new Attachment(strEmailMSGTemplate + @"\img_mail.png");
-                                            att3.ContentDisposition.Inline = true;
-                                            Attachment att4 = new Attachment(strEmailMSGTemplate + @"\img_maps.png");
-                                            att4.ContentDisposition.Inline = true;
-                                            Attachment att5 = new Attachment(strEmailMSGTemplate + @"\img_facebook.png");
-                                            att5.ContentDisposition.Inline = true;
-                                            Attachment att6 = new Attachment(strEmailMSGTemplate + @"\img_linkedin.png");
-                                            att6.ContentDisposition.Inline = true;
-                                            Attachment att7 = new Attachment(strEmailMSGTemplate + @"\img_instagram.png");
-                                            att7.ContentDisposition.Inline = true;
-                                            Attachment att8 = new Attachment(strEmailMSGTemplate + @"\img_showers.png");
-                                            att8.ContentDisposition.Inline = true;
+                                            //Attachment att1 = new Attachment(strEmailMSGTemplate + @"\image001.jpg");
+                                            //att1.ContentDisposition.Inline = true;
+                                            //Attachment att2 = new Attachment(strEmailMSGTemplate + @"\img_phone.png");
+                                            //att2.ContentDisposition.Inline = true;
+                                            //Attachment att3 = new Attachment(strEmailMSGTemplate + @"\img_mail.png");
+                                            //att3.ContentDisposition.Inline = true;
+                                            //Attachment att4 = new Attachment(strEmailMSGTemplate + @"\img_maps.png");
+                                            //att4.ContentDisposition.Inline = true;
+                                            //Attachment att5 = new Attachment(strEmailMSGTemplate + @"\img_facebook.png");
+                                            //att5.ContentDisposition.Inline = true;
+                                            //Attachment att6 = new Attachment(strEmailMSGTemplate + @"\img_linkedin.png");
+                                            //att6.ContentDisposition.Inline = true;
+                                            //Attachment att7 = new Attachment(strEmailMSGTemplate + @"\img_instagram.png");
+                                            //att7.ContentDisposition.Inline = true;
+                                            //Attachment att8 = new Attachment(strEmailMSGTemplate + @"\img_showers.png");
+                                            //att8.ContentDisposition.Inline = true;
+                                            //strEmailTo = strEmailTo + ",orders@precisionglassindustries.com";
+                                            if (strEmailTo.StartsWith("orders@precisionglassindustries.com", true, System.Globalization.CultureInfo.CurrentCulture))
+                                            {
+                                                strEmailTo = strEmailTo.Replace(strEmailDoNotSendList+",", "", true, System.Globalization.CultureInfo.CurrentCulture);
+                                            }
+                                            else
+                                            {
+                                                strEmailTo = strEmailTo.Replace("," + strEmailDoNotSendList, "", true, System.Globalization.CultureInfo.CurrentCulture);
+
+                                            }
+
+                                            //strEmailTo = strEmailTo.Replace(strEmailDoNotSendList, "", true, System.Globalization.CultureInfo.CurrentCulture);
+
+                                            if (strEmailCC.StartsWith("orders@precisionglassindustries.com", true, System.Globalization.CultureInfo.CurrentCulture))
+                                            {
+                                                strEmailCC = strEmailCC.Replace(strEmailDoNotSendList+",", "", true, System.Globalization.CultureInfo.CurrentCulture);
+                                                strEmailCC = strEmailCC.Replace(strEmailDoNotSendList , "", true, System.Globalization.CultureInfo.CurrentCulture);
+                                            }
+                                            else
+                                            {
+                                                strEmailCC = strEmailCC.Replace(","+strEmailDoNotSendList, "", true, System.Globalization.CultureInfo.CurrentCulture);
+                                            }
+
+                                            clsWriteLog.funWriteLog(strLogFileName, DateTime.Now.ToString() + ": " + strorderNo + " Sending OC Email... To : " + strEmailTo + (strEmailCC.Trim().Length > 0 ? " CC : " + strEmailCC : ""));
 
                                             mail.From = new MailAddress(strEmailFrom);
 
@@ -275,17 +305,18 @@ namespace Auto_OC_Email_Core
                                             //    mail.CC.Add("npatel@precisionglassindustries.com");
                                             //Testing End
                                             mail.Subject = strEmailSubject;
-                                            mail.Body = String.Format(strEmailBody, strDeliveryDT, strPGIOrderNo, att1.ContentId, att2.ContentId, att3.ContentId, att4.ContentId, att5.ContentId, att6.ContentId, att7.ContentId, att8.ContentId);    //, strEmailTo, strEmailCC);
+                                            mail.Body = String.Format(strEmailBody, strDeliveryDT, strPGIOrderNo);
+                                            //mail.Body = String.Format(strEmailBody, strDeliveryDT, strPGIOrderNo, att1.ContentId, att2.ContentId, att3.ContentId, att4.ContentId, att5.ContentId, att6.ContentId, att7.ContentId, att8.ContentId);    //, strEmailTo, strEmailCC);
 
                                             mail.IsBodyHtml = true;
-                                            mail.Attachments.Add(att1);
-                                            mail.Attachments.Add(att2);
-                                            mail.Attachments.Add(att3);
-                                            mail.Attachments.Add(att4);
-                                            mail.Attachments.Add(att5);
-                                            mail.Attachments.Add(att6);
-                                            mail.Attachments.Add(att7);
-                                            mail.Attachments.Add(att8);
+                                            //mail.Attachments.Add(att1);
+                                            //mail.Attachments.Add(att2);
+                                            //mail.Attachments.Add(att3);
+                                            //mail.Attachments.Add(att4);
+                                            //mail.Attachments.Add(att5);
+                                            //mail.Attachments.Add(att6);
+                                            //mail.Attachments.Add(att7);
+                                            //mail.Attachments.Add(att8);
 
                                             foreach (string attachmentfile in strEmailAttachment)
                                             {
@@ -299,7 +330,7 @@ namespace Auto_OC_Email_Core
                                             clsWriteLog.funWriteLog(strLogFileName, DateTime.Now.ToString() + ": " + strorderNo + " Email send successfully.");
                                             //Updating Order Difference Table  to set EmailConfirmationToCustomerSent field......
 
-                                            SqlConnection sqlcon1 = new SqlConnection(ConfigurationManager.ConnectionStrings["dbcon"].ToString());
+                                            SqlConnection sqlcon1 = new SqlConnection(builder.Configuration.GetValue<string>("ConnectionStrings:SQLOrder"));
                                             SqlCommand cmd1 = new SqlCommand();
                                             cmd1.Connection = sqlcon1;
                                             cmd1.CommandType = CommandType.Text;
@@ -339,7 +370,7 @@ namespace Auto_OC_Email_Core
                                             string timestamp = "-" + DateTime.Now.Hour.ToString() + "_" + DateTime.Now.Minute.ToString() + "_" + DateTime.Now.Second.ToString();
                                             //Moving MSG file to Error folder ....
                                             clsWriteLog.funWriteLog(strLogFileName, DateTime.Now.ToString() + ": " + strorderNo + " Moving email file and OC with dollar PDF file to Error folder.");
-                                            string strEmailMSGErr = ConfigurationManager.AppSettings.Get("ErrorMSG");
+                                            string strEmailMSGErr = builder.Configuration.GetValue<string>("AppSettings:ErrorMSG");
                                             string strOCDollarArcive, strMSGArcive;
                                             strOCDollarArcive = Path.GetFileName(OCDollarFile).Replace(".pdf", timestamp + ".pdf");
                                             Directory.Move(OCDollarFile, strEmailMSGErr + "\\" + strOCDollarArcive);
@@ -427,7 +458,7 @@ namespace Auto_OC_Email_Core
 
             Thread.Sleep(3000);
             //Process PDF for purge...
-            SqlConnection sqlcon2 = new SqlConnection(ConfigurationManager.ConnectionStrings["dbcon"].ToString());
+            SqlConnection sqlcon2 = new SqlConnection(builder.Configuration.GetValue<string>("ConnectionStrings:SQLOrder"));
             SqlCommand cmd2 = new SqlCommand();
             cmd2.Connection = sqlcon2;
             cmd2.CommandType = CommandType.Text;
@@ -459,7 +490,7 @@ namespace Auto_OC_Email_Core
 
         private static string funCreateFileStructure()
         {
-            string strEmailMSGArc = ConfigurationManager.AppSettings.Get("ArchiveEmailMSG");
+            string strEmailMSGArc = builder.Configuration.GetValue<string>("AppSettings:ArchiveEmailMSG");
             #region Create Archive File Structure...
             if (!Directory.Exists(strEmailMSGArc))
             {
