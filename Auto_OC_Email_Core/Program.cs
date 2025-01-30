@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Text;
 using System.IO;
 using System.Text.RegularExpressions;
 using Utilities_Core;
@@ -10,7 +9,6 @@ using System.Data;
 using System.Xml;
 using System.Collections.Generic;
 using System.Net.Mail;
-using MsgReader;
 using System.Threading;
 
 namespace Auto_OC_Email_Core
