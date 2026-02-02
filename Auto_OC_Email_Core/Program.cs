@@ -326,23 +326,6 @@ namespace Auto_OC_Email_Core
                                             mail.Dispose();
                                             Thread.Sleep(6000);
                                             clsWriteLog.funWriteLog(strLogFileName, DateTime.Now.ToString() + ": " + strorderNo + " Email send successfully.");
-                                            //Updating Order Difference Table  to set EmailConfirmationToCustomerSent field......
-
-                                            SqlConnection sqlcon1 = new SqlConnection(builder.Configuration.GetValue<string>("ConnectionStrings:SQLOrder"));
-                                            SqlCommand cmd1 = new SqlCommand();
-                                            cmd1.Connection = sqlcon1;
-                                            cmd1.CommandType = CommandType.Text;
-                                            cmd1.CommandText = "update data.OrderDiff set EmailConfirmationToCustomerSent = 1,  DateEmailSent = GetDate() where DocumentNumber like '" + strorderNo + "%'";
-                                            sqlcon1.Open();
-                                            int i = 1,rowsupdated=0;
-                                            while (i <= 3 && rowsupdated <= 0)
-                                            {
-                                                rowsupdated = cmd1.ExecuteNonQuery();
-                                                i++;
-                                            }
-                                            sqlcon1.Close();
-                                            clsWriteLog.funWriteLog(strLogFileName, DateTime.Now.ToString() + ": " + strorderNo + " data.OrderDiff Table has been updated to set EmailConfirmationToCustomerSent flag.");
-
                                             string timestamp = "-" + DateTime.Now.Hour.ToString() + "_" + DateTime.Now.Minute.ToString() + "_" + DateTime.Now.Second.ToString();
                                             //Archive OC ....
                                             clsWriteLog.funWriteLog(strLogFileName, DateTime.Now.ToString() + ": " + strorderNo + " Archiving email file and OC with dollar PDF file.");
@@ -375,6 +358,29 @@ namespace Auto_OC_Email_Core
                                             //Archive Email MSG file ....
                                             strMSGArcive = Path.GetFileName(strMSGFileErr).Replace(".msg", timestamp + ".msg").Replace(".eml", timestamp + ".eml");
                                             Directory.Move(strMSGFileErr, strEmailMSGErr + "\\" + strMSGArcive);
+                                        }
+
+                                        //Updating Order Difference Table  to set EmailConfirmationToCustomerSent field......
+                                        try
+                                        {
+                                            SqlConnection sqlcon1 = new SqlConnection(builder.Configuration.GetValue<string>("ConnectionStrings:SQLOrder"));
+                                            SqlCommand cmd1 = new SqlCommand();
+                                            cmd1.Connection = sqlcon1;
+                                            cmd1.CommandType = CommandType.Text;
+                                            cmd1.CommandText = "update data.OrderDiff set EmailConfirmationToCustomerSent = 1,  DateEmailSent = GetDate() where DocumentNumber like '" + strorderNo + "%'";
+                                            sqlcon1.Open();
+                                            int i = 1, rowsupdated = 0;
+                                            while (i <= 3 && rowsupdated <= 0)
+                                            {
+                                                rowsupdated = cmd1.ExecuteNonQuery();
+                                                i++;
+                                            }
+                                            sqlcon1.Close();
+                                            clsWriteLog.funWriteLog(strLogFileName, DateTime.Now.ToString() + ": " + strorderNo + " data.OrderDiff Table has been updated to set EmailConfirmationToCustomerSent flag.");
+                                        }
+                                        catch (Exception ex)
+                                        {
+                                            clsWriteLog.funWriteLog(strLogFileName, DateTime.Now.ToString() + ": " + strorderNo + " Error updating data.OrderDiff table." + ex.Message);
                                         }
 
                                     }
